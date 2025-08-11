@@ -1,0 +1,12 @@
+services:
+    db:
+         image: postgres
+         restart: always 
+         ports:
+            - "5432:5432"
+         environment:
+            POSTGRES_PASSWD: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_HOST: postgres
+    redis:
+        image: redis
