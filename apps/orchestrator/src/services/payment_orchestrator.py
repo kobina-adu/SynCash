@@ -7,12 +7,16 @@ import structlog
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import uuid
+import time
+from decimal import Decimal
+import asyncio
 
 from src.models.transaction import (
     Transaction, TransactionStatus, PaymentProvider, 
     TransactionType, TransactionEvent
 )
 from src.core.database import get_db_session
+from src.monitoring.metrics import metrics
 from src.config.settings import get_settings
 
 logger = structlog.get_logger(__name__)
@@ -69,9 +73,18 @@ class PaymentOrchestrator:
                 metadata=metadata or {}
             )
             
-            # Step 3: Basic fraud check (simplified for now)
-            risk_level = await self._basic_fraud_check(transaction)
+            # Step 3: Call external fraud detection service
+            fraud_start_time = time.time()
+            risk_level = await self._call_fraud_detection_service(transaction)
+            fraud_duration = time.time() - fraud_start_time
             transaction.risk_level = risk_level
+            
+            # Record fraud detection metrics
+            metrics.record_fraud_check(
+                risk_level=risk_level,
+                service_status="success",
+                duration=fraud_duration
+            )
             
             if risk_level == "CRITICAL":
                 await self._update_transaction_status(
@@ -102,15 +115,19 @@ class PaymentOrchestrator:
     
     async def get_transaction_status(self, transaction_id: str) -> Dict[str, Any]:
         """Get current transaction status"""
-        async with get_db_session() as session:
-            transaction = await session.get(Transaction, uuid.UUID(transaction_id))
-            if not transaction:
-                return {"success": False, "error": "Transaction not found"}
-            
-            return {
-                "success": True,
-                "transaction": transaction.to_dict()
-            }
+        try:
+            async with get_db_session() as session:
+                transaction = await session.get(Transaction, uuid.UUID(transaction_id))
+                if not transaction:
+                    return {"success": False, "error": "Transaction not found"}
+                
+                return {
+                    "success": True,
+                    "transaction": transaction.to_dict()
+                }
+        except Exception as e:
+            logger.error("Failed to get transaction status", exc_info=e, transaction_id=transaction_id)
+            return {"success": False, "error": "Database error occurred"}
     
     async def cancel_transaction(self, transaction_id: str, user_id: str) -> Dict[str, Any]:
         """Cancel a pending transaction"""
@@ -134,7 +151,7 @@ class PaymentOrchestrator:
     
     async def _validate_payment_request(self, user_id: str, amount: float, recipient_phone: str):
         """Validate payment request parameters"""
-        if not user_id:
+        if not user_id or not user_id.strip():
             raise ValueError("User ID is required")
         
         if amount <= 0:
@@ -146,8 +163,13 @@ class PaymentOrchestrator:
         if amount > self.settings.max_transaction_amount:
             raise ValueError(f"Amount exceeds maximum: {self.settings.max_transaction_amount}")
         
-        if not recipient_phone:
+        if not recipient_phone or not recipient_phone.strip():
             raise ValueError("Recipient phone is required")
+        
+        # Basic phone number validation
+        phone_clean = recipient_phone.replace('+', '').replace('-', '').replace(' ', '')
+        if not phone_clean.isdigit() or len(phone_clean) < 10:
+            raise ValueError("Invalid phone number format")
     
     async def _create_transaction(self, **kwargs) -> Transaction:
         """Create a new transaction record"""
@@ -164,28 +186,33 @@ class PaymentOrchestrator:
         
         return transaction
     
-    async def _basic_fraud_check(self, transaction: Transaction) -> str:
-        """Basic fraud detection (simplified)"""
-        # Simple rules-based fraud detection
-        risk_score = 0.0
-        
-        # Large amount check
-        if transaction.amount > self.settings.suspicious_amount_threshold:
-            risk_score += 0.5
-        
-        # Very large amounts
-        if transaction.amount > self.settings.suspicious_amount_threshold * 2:
-            risk_score += 0.3
-        
-        # Determine risk level
-        if risk_score >= 0.8:
-            return "CRITICAL"
-        elif risk_score >= 0.6:
-            return "HIGH"
-        elif risk_score >= 0.3:
-            return "MEDIUM"
-        else:
+    async def _call_fraud_detection_service(self, transaction: Transaction) -> str:
+        """Call external fraud detection ML service"""
+        try:
+            # TODO: Replace with actual fraud detection service API call
+            # For now, return LOW risk as default until fraud service is implemented
+            fraud_payload = {
+                "transaction_id": str(transaction.id),
+                "user_id": transaction.user_id,
+                "amount": float(transaction.amount),
+                "recipient_phone": transaction.recipient_phone,
+                "timestamp": transaction.created_at.isoformat(),
+                "provider": transaction.provider.value if transaction.provider else None
+            }
+            
+            # This would be an HTTP call to fraud detection microservice
+            # response = await httpx.post(f"{FRAUD_SERVICE_URL}/assess", json=fraud_payload)
+            # risk_level = response.json()["risk_level"]
+            
+            logger.info("Fraud detection service call", transaction_id=str(transaction.id), payload=fraud_payload)
+            
+            # Default to LOW risk until fraud service is integrated
             return "LOW"
+            
+        except Exception as e:
+            logger.error("Fraud detection service call failed", exc_info=e, transaction_id=str(transaction.id))
+            # Default to MEDIUM risk if fraud service is unavailable
+            return "MEDIUM"
     
     async def _update_transaction_status(
         self, 

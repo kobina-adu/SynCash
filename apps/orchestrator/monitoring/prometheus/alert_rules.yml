@@ -1,0 +1,124 @@
+# Prometheus alert rules for SyncCash Orchestrator
+groups:
+  - name: synccash_orchestrator_alerts
+    rules:
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(synccash_errors_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value }} errors per second for the last 5 minutes"
+          
+      # Payment processing slow
+      - alert: SlowPaymentProcessing
+        expr: histogram_quantile(0.95, rate(synccash_payment_duration_seconds_bucket[5m])) > 30
+        for: 5m
+        labels:
+          severity: warning
+          service: synccash-orchestrator
+        annotations:
+          summary: "Payment processing is slow"
+          description: "95th percentile payment processing time is {{ $value }} seconds"
+          
+      # Low payment success rate
+      - alert: LowPaymentSuccessRate
+        expr: (rate(synccash_payment_requests_total{status="success"}[5m]) / rate(synccash_payment_requests_total[5m])) * 100 < 90
+        for: 3m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "Low payment success rate"
+          description: "Payment success rate is {{ $value }}% over the last 5 minutes"
+          
+      # High HTTP 5xx error rate
+      - alert: HighHTTP5xxRate
+        expr: rate(synccash_http_requests_total{status_code=~"5.."}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "High HTTP 5xx error rate"
+          description: "HTTP 5xx error rate is {{ $value }} per second"
+          
+      # Database connection issues
+      - alert: DatabaseConnectionIssues
+        expr: synccash_database_connections < 1
+        for: 1m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "Database connection issues"
+          description: "Database connections are {{ $value }}"
+          
+      # Redis connection issues
+      - alert: RedisConnectionIssues
+        expr: synccash_redis_connections < 1
+        for: 1m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "Redis connection issues"
+          description: "Redis connections are {{ $value }}"
+          
+      # High active transaction count
+      - alert: HighActiveTransactions
+        expr: synccash_active_transactions > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: synccash-orchestrator
+        annotations:
+          summary: "High number of active transactions"
+          description: "Active transactions count is {{ $value }}"
+          
+      # Provider API issues
+      - alert: ProviderAPIIssues
+        expr: rate(synccash_provider_requests_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: synccash-orchestrator
+        annotations:
+          summary: "Provider API issues detected"
+          description: "Provider API error rate is {{ $value }} per second"
+          
+      # Fraud service issues
+      - alert: FraudServiceIssues
+        expr: rate(synccash_fraud_checks_total{service_status="error"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+          service: synccash-orchestrator
+        annotations:
+          summary: "Fraud detection service issues"
+          description: "Fraud service error rate is {{ $value }} per second"
+          
+      # Celery task failures
+      - alert: CeleryTaskFailures
+        expr: rate(synccash_celery_tasks_total{status="failure"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+          service: synccash-orchestrator
+        annotations:
+          summary: "High Celery task failure rate"
+          description: "Celery task failure rate is {{ $value }} per second"
+          
+      # Service down
+      - alert: ServiceDown
+        expr: up{job="synccash-orchestrator"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: synccash-orchestrator
+        annotations:
+          summary: "SyncCash Orchestrator service is down"
+          description: "The orchestrator service has been down for more than 1 minute"

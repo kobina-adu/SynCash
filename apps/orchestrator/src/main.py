@@ -38,27 +38,54 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
-    logger.info("Starting SyncCash Orchestrator Service")
-    settings = get_settings()
+    logger.info("Starting SyncCash Orchestrator...")
     
-    # Initialize database (optional for development)
     try:
+        # Initialize database
         await init_db()
         logger.info("Database initialized")
-    except Exception as e:
-        logger.warning("Database initialization failed - running without DB", error=str(e))
-    
-    # Initialize Redis (optional for development)
-    try:
+        
+        # Initialize Redis
         await init_redis()
         logger.info("Redis initialized")
+        
+        # Initialize metrics
+        from src.monitoring.metrics import metrics
+        metrics.init_metrics()
+        logger.info("Metrics initialized")
+        
+        # Start database health monitoring
+        from src.services.db_monitor import db_health_monitor
+        import asyncio
+        asyncio.create_task(db_health_monitor.start_monitoring(check_interval=30))
+        logger.info("Database health monitoring started")
+        
+        logger.info("SyncCash Orchestrator started successfully")
+        
     except Exception as e:
-        logger.warning("Redis initialization failed - running without Redis", error=str(e))
+        logger.error("Failed to start application", exc_info=e)
+        raise
     
     yield
     
     # Shutdown
-    logger.info("Shutting down SyncCash Orchestrator Service")
+    logger.info("Shutting down SyncCash Orchestrator...")
+    
+    try:
+        # Stop database monitoring
+        await db_health_monitor.stop_monitoring()
+        logger.info("Database monitoring stopped")
+        
+        await close_redis()
+        logger.info("Redis connections closed")
+        
+        await close_db()
+        logger.info("Database connections closed")
+        
+        logger.info("SyncCash Orchestrator shutdown complete")
+        
+    except Exception as e:
+        logger.error("Error during shutdown", exc_info=e)
 
 # Create FastAPI application
 app = FastAPI(
@@ -118,10 +145,18 @@ async def health_check():
     }
 
 # Include API routers
-from src.api.v1 import health, payments
+from src.api.v1 import health, payments, metrics as metrics_api
+from src.monitoring.middleware import MetricsMiddleware, HealthCheckMiddleware
+from src.monitoring.metrics import metrics
+from src.services.db_monitor import db_health_monitor
 
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])
+app.include_router(metrics_api.router, tags=["monitoring"])
+
+# Add monitoring middleware
+app.add_middleware(MetricsMiddleware)
+app.add_middleware(HealthCheckMiddleware)
 
 # Root endpoint
 @app.get("/")

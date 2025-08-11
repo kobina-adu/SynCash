@@ -59,11 +59,9 @@ class Settings(BaseSettings):
     vodafone_api_key: str = Field(default="", env="VODAFONE_API_KEY")
     vodafone_api_secret: str = Field(default="", env="VODAFONE_API_SECRET")
     
-    # Fraud Detection
-    fraud_detection_enabled: bool = Field(default=True, env="FRAUD_DETECTION_ENABLED")
-    max_daily_transaction_amount: float = Field(default=50000.0, env="MAX_DAILY_TRANSACTION_AMOUNT")
-    max_transactions_per_minute: int = Field(default=10, env="MAX_TRANSACTIONS_PER_MINUTE")
-    suspicious_amount_threshold: float = Field(default=5000.0, env="SUSPICIOUS_AMOUNT_THRESHOLD")
+    # External Services
+    fraud_detection_service_url: str = Field(default="http://localhost:8001", env="FRAUD_DETECTION_SERVICE_URL")
+    fraud_detection_timeout: int = Field(default=5, env="FRAUD_DETECTION_TIMEOUT")
     
     # Logging
     log_level: str = Field(default="INFO", env="LOG_LEVEL")

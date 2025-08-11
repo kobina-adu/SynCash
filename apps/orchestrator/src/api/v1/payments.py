@@ -53,48 +53,51 @@ class TransactionStatusResponse(BaseModel):
 orchestrator = PaymentOrchestrator()
 
 @router.post("/payments/initiate", response_model=PaymentResponse)
-async def initiate_payment(payment_request: PaymentRequest):
+async def initiate_payment(request: PaymentRequest):
     """
     Initiate a new payment transaction
     
-    This endpoint starts the payment orchestration process:
-    1. Validates the payment request
-    2. Performs basic fraud detection
-    3. Creates transaction record
-    4. Returns transaction details
+    This endpoint creates a new payment transaction and begins the orchestration process.
+    The payment will be validated, risk-assessed, and routed to the appropriate provider.
+    
+    Returns:
+    - transaction_id: Unique identifier for tracking
+    - status: Current transaction status
+    - estimated_completion: Expected completion time
     """
     try:
-        logger.info(
-            "Payment initiation request",
-            user_id=payment_request.user_id,
-            amount=payment_request.amount,
-            recipient=payment_request.recipient_phone
-        )
+        logger.info("Payment initiation request", 
+                   amount=request.amount, 
+                   recipient=request.recipient_phone[:4] + "****")
         
-        # Call orchestrator service
         result = await orchestrator.initiate_payment(
-            user_id=payment_request.user_id,
-            amount=payment_request.amount,
-            recipient_phone=payment_request.recipient_phone,
-            recipient_name=payment_request.recipient_name,
-            description=payment_request.description,
-            metadata=payment_request.metadata
+            user_id=request.user_id,
+            amount=request.amount,
+            recipient_phone=request.recipient_phone,
+            recipient_name=request.recipient_name,
+            description=request.description,
+            metadata=request.metadata
         )
         
         if result["success"]:
             return PaymentResponse(**result)
         else:
-            raise HTTPException(
-                status_code=400,
-                detail=result.get("error", "Payment initiation failed")
-            )
+            error_msg = result.get("error", "Payment initiation failed")
+            # Check if it's a validation error
+            if "Amount" in error_msg or "positive" in error_msg or "minimum" in error_msg or "maximum" in error_msg:
+                raise HTTPException(status_code=400, detail=error_msg)
+            elif "phone" in error_msg.lower() or "format" in error_msg.lower():
+                raise HTTPException(status_code=400, detail=error_msg)
+            else:
+                raise HTTPException(status_code=422, detail=error_msg)
             
+    except HTTPException:
+        raise
     except ValueError as e:
-        logger.warning("Payment validation failed", error=str(e), user_id=payment_request.user_id)
+        # Validation errors should return 400
         raise HTTPException(status_code=400, detail=str(e))
-    
     except Exception as e:
-        logger.error("Payment initiation error", exc_info=e, user_id=payment_request.user_id)
+        logger.error("Payment initiation error", exc_info=e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @router.get("/payments/{transaction_id}/status", response_model=TransactionStatusResponse)
@@ -111,6 +114,16 @@ async def get_payment_status(transaction_id: str):
     try:
         logger.info("Payment status request", transaction_id=transaction_id)
         
+        # Validate UUID format
+        try:
+            import uuid
+            uuid.UUID(transaction_id)
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid transaction ID format"
+            )
+        
         result = await orchestrator.get_transaction_status(transaction_id)
         
         if result["success"]:
@@ -121,6 +134,8 @@ async def get_payment_status(transaction_id: str):
                 detail=result.get("error", "Transaction not found")
             )
             
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Payment status error", exc_info=e, transaction_id=transaction_id)
         raise HTTPException(status_code=500, detail="Internal server error")
