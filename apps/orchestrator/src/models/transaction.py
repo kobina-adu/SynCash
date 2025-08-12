@@ -29,13 +29,15 @@ class PaymentProvider(str, Enum):
     """Payment provider enumeration"""
     MTN = "mtn"
     AIRTEL = "airtel"
-    VODAFONE = "vodafone"
+    TELECEL = "telecel"
 
 class TransactionType(str, Enum):
     """Transaction type enumeration"""
     PAYMENT = "payment"
     REFUND = "refund"
     TRANSFER = "transfer"
+    DEBIT = "debit"
+    CASH_OUT = "cash_out"
 
 class Transaction(Base):
     """Main transaction model"""

@@ -18,13 +18,13 @@ class Settings(BaseSettings):
     
     # Database
     database_url: str = Field(
-        default="postgresql+asyncpg://postgres:password@localhost:5432/synccash_orchestrator",
+        default="postgres://synccash:synccash@localhost:5432/synccash",
         env="DATABASE_URL"
     )
     database_echo: bool = Field(default=False, env="DATABASE_ECHO")
     
     # Redis
-    redis_url: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    redis_url: str = Field(default="redis://localhost:6379/orc", env="REDIS_URL")
     redis_password: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
     
     # Celery
@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     
     # CORS
     allowed_origins: List[str] = Field(
-        default=["http://localhost:3000", "http://localhost:8080"],
+        default=["http://localhost:3000", "http://localhost:8080", "http://localhost:8000"],
         env="ALLOWED_ORIGINS"
     )
     

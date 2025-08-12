@@ -45,6 +45,7 @@ async def detailed_health():
     """Detailed health check including dependencies"""
     
     # Check database connectivity
+    
     db_status = "healthy"
     try:
         async with get_db_session() as session:
