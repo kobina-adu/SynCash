@@ -60,7 +60,7 @@ app.route("/auth", authRouter);
 
 serve({ 
   fetch: app.fetch,
-  port: 3000
+  port: 3001
 }, (info) => {
   console.log(`Server running on http://localhost:${info.port}`);
 });
