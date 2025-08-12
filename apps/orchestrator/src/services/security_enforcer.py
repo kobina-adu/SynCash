@@ -11,6 +11,7 @@ from decimal import Decimal
 import structlog
 
 from src.monitoring.metrics import metrics
+from src.services.betterauth import get_betterauth_service, BetterAuthError, TokenValidationError, PermissionDeniedError
 
 logger = structlog.get_logger(__name__)
 
@@ -52,41 +53,55 @@ class SecurityEnforcer:
         self.active_sessions = {}  # Track active user sessions
         self.rate_limit_tracking = {}  # Track rate limiting per user
         self.suspicious_activity = {}  # Track suspicious activity
+        self.betterauth = get_betterauth_service()
     
     async def validate_jwt_token(self, token: str) -> Dict[str, Any]:
         """
-        Validate JWT token and extract user information
-        TODO: Integrate with BetterAuth when available
+        Validate JWT token with BetterAuth and extract user information
         """
         try:
-            # TODO: Implement actual JWT validation with BetterAuth
-            # For now, simulate token validation
+            # Use BetterAuth service for token validation
+            result = await self.betterauth.validate_jwt_token(token)
             
-            if not token or len(token) < 10:
-                return {
-                    "valid": False,
-                    "error": "Invalid token format"
-                }
+            if not result["valid"]:
+                logger.warning("JWT token validation failed", error=result.get("error"))
+                return result
             
-            # Simulate token parsing
-            # In production, this would use proper JWT library
-            user_info = {
-                "user_id": "user_123",  # Extract from token
-                "permissions": ["payment", "status_query"],
-                "expires_at": datetime.now() + timedelta(hours=1)
+            user_info = result["user_info"]
+            user_id = user_info["user_id"]
+            
+            # Update active sessions tracking
+            self.active_sessions[user_id] = {
+                "session_id": user_info.get("session_id"),
+                "last_activity": datetime.now(),
+                "permissions": user_info.get("permissions", []),
+                "is_verified": user_info.get("is_verified", False)
             }
             
-            logger.debug("JWT token validated", user_id=user_info["user_id"])
+            logger.debug("JWT token validated successfully", 
+                        user_id=user_id,
+                        is_verified=user_info.get("is_verified"),
+                        permissions_count=len(user_info.get("permissions", [])))
             
-            return {
-                "valid": True,
-                "user_info": user_info
-            }
+            return result
             
-        except Exception as e:
-            logger.error("JWT validation failed", exc_info=e)
+        except TokenValidationError as e:
+            logger.warning("Token validation error", error=str(e))
             metrics.record_error("jwt_validation_error", "security_enforcer")
-            
+            return {
+                "valid": False,
+                "error": str(e)
+            }
+        except BetterAuthError as e:
+            logger.error("BetterAuth service error", error=str(e))
+            metrics.record_error("betterauth_service_error", "security_enforcer")
+            return {
+                "valid": False,
+                "error": "Authentication service error"
+            }
+        except Exception as e:
+            logger.error("Unexpected JWT validation error", exc_info=e)
+            metrics.record_error("jwt_validation_unexpected_error", "security_enforcer")
             return {
                 "valid": False,
                 "error": "Token validation failed"
@@ -134,27 +149,66 @@ class SecurityEnforcer:
                 "reason": "MFA required due to security check failure"
             }
     
-    async def validate_mfa_token(self, user_id: str, mfa_token: str) -> bool:
+    async def check_user_permissions(self, user_id: str, required_permissions: List[str]) -> Dict[str, Any]:
+        """
+        Check if user has required permissions using BetterAuth
+        """
+        try:
+            has_permissions = await self.betterauth.check_user_permissions(user_id, required_permissions)
+            
+            if not has_permissions:
+                logger.warning("User lacks required permissions",
+                             user_id=user_id,
+                             required_permissions=required_permissions)
+                
+                await self.log_security_event(
+                    "permission_denied",
+                    user_id,
+                    {"required_permissions": required_permissions},
+                    "WARNING"
+                )
+                
+                return {
+                    "authorized": False,
+                    "error": "Insufficient permissions",
+                    "required_permissions": required_permissions
+                }
+            
+            logger.debug("Permission check passed", 
+                        user_id=user_id,
+                        permissions=required_permissions)
+            
+            return {"authorized": True}
+            
+        except Exception as e:
+            logger.error("Permission check failed", user_id=user_id, error=str(e))
+            return {
+                "authorized": False,
+                "error": "Permission check failed"
+            }
+
+    async def validate_mfa_token(self, user_id: str, mfa_token: str) -> Dict[str, Any]:
         """
         Validate MFA token (TOTP, SMS, etc.)
         TODO: Integrate with actual MFA provider
         """
         try:
             # TODO: Implement actual MFA validation
-            # This could be TOTP, SMS OTP, or other MFA methods
+            # For now, simulate MFA validation
             
-            if not mfa_token or len(mfa_token) != 6:
-                return False
+            # In production, this would validate TOTP, SMS codes, etc.
+            is_valid = len(mfa_token) == 6 and mfa_token.isdigit()
             
-            # Simulate MFA validation
-            # In production, this would validate against TOTP or SMS service
-            logger.info("MFA token validated", user_id=user_id)
-            
-            return True
-            
+            if is_valid:
+                logger.info("MFA token validated successfully", user_id=user_id)
+                return {"valid": True}
+            else:
+                logger.warning("Invalid MFA token", user_id=user_id)
+                return {"valid": False, "error": "Invalid MFA token"}
+                
         except Exception as e:
-            logger.error("MFA validation failed", exc_info=e, user_id=user_id)
-            return False
+            logger.error("MFA validation failed", user_id=user_id, exc_info=e)
+            return {"valid": False, "error": "MFA validation failed"}
     
     def sanitize_input(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Sanitize input data to prevent injection attacks"""
@@ -345,6 +399,83 @@ class SecurityEnforcer:
         """Hash sensitive data using SHA-256"""
         return hashlib.sha256(data.encode()).hexdigest()
     
+    async def invalidate_user_session(self, user_id: str) -> Dict[str, Any]:
+        """
+        Invalidate user session in BetterAuth and local tracking
+        """
+        try:
+            session_info = self.active_sessions.get(user_id)
+            if not session_info:
+                return {
+                    "success": False,
+                    "error": "No active session found"
+                }
+            
+            session_id = session_info.get("session_id")
+            if session_id:
+                # Invalidate session in BetterAuth
+                success = await self.betterauth.invalidate_session(session_id)
+                if not success:
+                    logger.warning("Failed to invalidate session in BetterAuth", 
+                                 user_id=user_id, session_id=session_id)
+            
+            # Remove from local tracking
+            del self.active_sessions[user_id]
+            
+            logger.info("User session invalidated", user_id=user_id)
+            
+            await self.log_security_event(
+                "session_invalidated",
+                user_id,
+                {"session_id": session_id},
+                "INFO"
+            )
+            
+            return {"success": True}
+            
+        except Exception as e:
+            logger.error("Session invalidation failed", user_id=user_id, error=str(e))
+            return {
+                "success": False,
+                "error": "Session invalidation failed"
+            }
+    
+    async def get_user_info(self, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get detailed user information from BetterAuth
+        """
+        try:
+            user_info = await self.betterauth.get_user_info(user_id)
+            
+            if user_info:
+                logger.debug("User info retrieved", user_id=user_id)
+            else:
+                logger.warning("User not found", user_id=user_id)
+            
+            return user_info
+            
+        except Exception as e:
+            logger.error("Failed to get user info", user_id=user_id, error=str(e))
+            return None
+    
+    async def refresh_user_token(self, refresh_token: str) -> Optional[Dict[str, Any]]:
+        """
+        Refresh user JWT token using refresh token
+        """
+        try:
+            token_data = await self.betterauth.refresh_token(refresh_token)
+            
+            if token_data:
+                logger.info("Token refreshed successfully")
+            else:
+                logger.warning("Token refresh failed")
+            
+            return token_data
+            
+        except Exception as e:
+            logger.error("Token refresh error", error=str(e))
+            return None
+
     async def log_security_event(
         self,
         event_type: str,

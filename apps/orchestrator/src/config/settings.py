@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", env="JWT_ALGORITHM")
     jwt_expire_minutes: int = Field(default=30, env="JWT_EXPIRE_MINUTES")
     
+    # BetterAuth Integration
+    betterauth_base_url: str = Field(default="http://localhost:3001", env="BETTERAUTH_BASE_URL")
+    betterauth_api_key: str = Field(default="", env="BETTERAUTH_API_KEY")
+    betterauth_jwt_secret: str = Field(default="", env="BETTERAUTH_JWT_SECRET")
+    betterauth_timeout: int = Field(default=10, env="BETTERAUTH_TIMEOUT")
+    
     # Payment Processing
     max_transaction_amount: float = Field(default=10000.0, env="MAX_TRANSACTION_AMOUNT")
     min_transaction_amount: float = Field(default=1.0, env="MIN_TRANSACTION_AMOUNT")

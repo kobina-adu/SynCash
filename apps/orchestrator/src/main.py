@@ -71,6 +71,18 @@ async def lifespan(app: FastAPI):
         successful_auths = sum(1 for success in auth_results.values() if success)
         logger.info(f"Provider authentication completed: {successful_auths}/{len(auth_results)} successful")
         
+        # Initialize BetterAuth service
+        from src.services.betterauth import get_betterauth_service
+        betterauth_service = get_betterauth_service()
+        
+        # Test BetterAuth connection
+        health_check = await betterauth_service.health_check()
+        if health_check["status"] == "healthy":
+            logger.info("BetterAuth service connection verified")
+        else:
+            logger.warning("BetterAuth service health check failed", 
+                          error=health_check.get("error"))
+        
         logger.info("SyncCash Orchestrator started successfully")
         
     except Exception as e:
@@ -96,6 +108,15 @@ async def lifespan(app: FastAPI):
         # Stop database health monitoring
         await db_health_monitor.stop_monitoring()
         logger.info("Database health monitoring stopped")
+        
+        # Close BetterAuth service
+        try:
+            from src.services.betterauth import get_betterauth_service
+            betterauth_service = get_betterauth_service()
+            await betterauth_service.close()
+            logger.info("BetterAuth service closed")
+        except Exception as e:
+            logger.warning("Error closing BetterAuth service", error=str(e))
         
         # Close Redis connection
         await redis_client.close()
