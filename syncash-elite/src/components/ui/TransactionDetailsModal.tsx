@@ -19,7 +19,8 @@ import {
   User,
   Building2,
   Smartphone,
-  CreditCard
+  CreditCard,
+  ArrowLeft
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -248,29 +249,42 @@ export function TransactionDetailsModal({ transaction, isOpen, onClose }: Transa
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
+                <div className="space-y-3 pt-4">
+                  {/* Primary Back Button */}
                   <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => copyToClipboard(transaction.id)}
+                    variant="primary"
+                    className="w-full"
+                    onClick={onClose}
                   >
-                    <Copy className="w-4 h-4 mr-2" />
-                    Copy ID
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Back to Dashboard
                   </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Receipt
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Share
-                  </Button>
+                  
+                  {/* Secondary Action Buttons */}
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                      onClick={() => copyToClipboard(transaction.id)}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy ID
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Receipt
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      className="flex-1"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
