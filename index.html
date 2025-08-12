@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Syncash — Smart e-Payments</title>
+  <meta name="description" content="Clean landing and simple dashboard for an e-payment app (Syncash) — HTML + CSS only." />
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <a class="brand" href="#">
+        <div class="logo">S</div>
+        <div>
+          <div style="font-weight:800">Syncash</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">Elite e-payment ecosystem</div>
+        </div>
+      </a>
+
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#dashboard">Dashboard</a>
+        <a class="cta" href="#get-started">Get started</a>
+      </nav>
+    </header>
+
+    <main class="hero">
+      <div class="hero-card">
+        <h1>Payments, wallets, and settlements — one place.</h1>
+        <p class="lead">Manage multiple payment rails, onboard businesses, and process transfers with a clean, auditable UI. Built for teams who hate complexity and love results.</p>
+
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#get-started">Create a demo account</a>
+          <a class="btn btn-ghost" href="#learn">See docs</a>
+        </div>
+
+        <div class="features" aria-hidden="true">
+          <div class="chip">Multi-rail transfers</div>
+          <div class="chip">Team roles</div>
+          <div class="chip">Fast settlements</div>
+          <div class="chip">Webhooks & logs</div>
+        </div>
+
+        <section id="features" class="features-grid" style="margin-top:18px">
+          <div class="feature">
+            <h3>Unified Wallets</h3>
+            <p>Combine mobile money, bank accounts, and cards into one unified balance with traceable transactions.</p>
+          </div>
+          <div class="feature">
+            <h3>Permissions</h3>
+            <p>Role based access control for admins, finance, and ops. Remove access without changing a password.</p>
+          </div>
+          <div class="feature">
+            <h3>Settlements</h3>
+            <p>Automated batching and settlement tracking so reconciliation is not a guessing game anymore.</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="preview">
+        <div class="mock" id="dashboard" aria-label="dashboard preview">
+          <div class="balance">
+            <div class="left">
+              <div class="small">Total balance</div>
+              <div class="amount">GH₵ 48,520.40</div>
+            </div>
+            <div class="small">Updated: Aug 11, 2025</div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+            <div class="mini">Send</div>
+            <div class="mini">Receive</div>
+            <div class="mini">Batch Pay</div>
+            <div class="mini">Reports</div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;gap:10px;margin-top:16px">
+            <div style="flex:1">
+              <div class="small">Recent</div>
+              <ul style="list-style:none;padding:0;margin:8px 0 0 0;color:var(--muted);font-size:13px">
+                <li>→ Merchant payout • GH₵ 2,300</li>
+                <li>→ Refund • GH₵ 120</li>
+                <li>→ Topup • GH₵ 5,000</li>
+              </ul>
+            </div>
+            <div style="width:120px">
+              <div class="small">Account</div>
+              <div style="margin-top:8px;font-weight:700">Business • Active</div>
+              <div style="margin-top:8px" class="kbd">Role: Admin</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;align-items:center">
+          <div style="flex:1;background:var(--glass);padding:12px;border-radius:12px">
+            <div style="font-size:13px;color:var(--muted)">App status</div>
+            <div style="margin-top:6px;font-weight:700">All systems nominal</div>
+          </div>
+          <div style="width:120px;background:rgba(255,255,255,0.02);padding:12px;border-radius:12px;text-align:center">
+            <div style="font-size:13px;color:var(--muted)">Demo</div>
+            <div style="margin-top:6px;font-weight:700">Try now</div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer>
+      <div>© Syncash • Built with caffeine and mild panic</div>
+      <div class="muted">Need the design system? I can export a CSS tokens file next.</div>
+    </footer>
+  </div>
+</body>
+</html>
