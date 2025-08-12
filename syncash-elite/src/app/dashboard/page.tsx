@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image';
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
@@ -38,16 +39,24 @@ const userData = {
 }
 
 const walletData = [
-  { 
-    name: 'MTN MoMo', 
-    balance: 8500.00, 
-    percentage: 53.6, 
-    color: '#FFD700', 
-    icon: Smartphone,
-    logo: '📱',
-    bgColor: 'bg-yellow-100 dark:bg-yellow-500/20',
-    textColor: 'text-yellow-600 dark:text-yellow-400'
-  },
+  
+{
+  name: 'MTN MoMo',
+  balance: 8500.0,
+  percentage: 53.6,
+  color: '#FFD700',
+  icon: (
+    <Image
+      src="/logos/mtn.jpeg"
+      alt="mtn momo logo"
+      width={40}
+      height={40}
+    />
+  ),
+  bgColor: 'bg-yellow-100 dark:bg-yellow-500/20',
+  textColor: 'text-yellow-600 dark:text-yellow-400'
+},
+
   { 
     name: 'Telecel Cash', 
     balance: 4200.00, 
