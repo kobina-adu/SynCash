@@ -45,20 +45,31 @@ async def lifespan(app: FastAPI):
         await init_db()
         logger.info("Database initialized")
         
-        # Initialize Redis
-        await init_redis()
-        logger.info("Redis initialized")
-        
-        # Initialize metrics
-        from src.monitoring.metrics import metrics
-        metrics.init_metrics()
-        logger.info("Metrics initialized")
-        
         # Start database health monitoring
         from src.services.db_monitor import db_health_monitor
-        import asyncio
-        asyncio.create_task(db_health_monitor.start_monitoring(check_interval=30))
+        await db_health_monitor.start_monitoring()
         logger.info("Database health monitoring started")
+        
+        # Initialize Redis connection
+        await redis_client.initialize()
+        logger.info("Redis connection initialized")
+        
+        # Test database connection
+        await test_connection()
+        logger.info("Database connection verified")
+        
+        # Initialize payment providers
+        settings = get_settings()
+        provider_configs = settings.get_provider_configs()
+        
+        from src.providers import initialize_provider_manager
+        provider_manager = initialize_provider_manager(provider_configs)
+        logger.info("Payment providers initialized")
+        
+        # Authenticate all providers
+        auth_results = await provider_manager.authenticate_all()
+        successful_auths = sum(1 for success in auth_results.values() if success)
+        logger.info(f"Provider authentication completed: {successful_auths}/{len(auth_results)} successful")
         
         logger.info("SyncCash Orchestrator started successfully")
         
@@ -72,17 +83,29 @@ async def lifespan(app: FastAPI):
     logger.info("Shutting down SyncCash Orchestrator...")
     
     try:
-        # Stop database monitoring
+        # Close provider connections
+        from src.providers import get_provider_manager
+        try:
+            provider_manager = get_provider_manager()
+            await provider_manager.close_all()
+            logger.info("Provider connections closed")
+        except RuntimeError:
+            # Provider manager not initialized
+            pass
+        
+        # Stop database health monitoring
         await db_health_monitor.stop_monitoring()
-        logger.info("Database monitoring stopped")
+        logger.info("Database health monitoring stopped")
         
-        await close_redis()
-        logger.info("Redis connections closed")
+        # Close Redis connection
+        await redis_client.close()
+        logger.info("Redis connection closed")
         
+        # Close database connections
         await close_db()
         logger.info("Database connections closed")
         
-        logger.info("SyncCash Orchestrator shutdown complete")
+        logger.info("SyncCash Orchestrator shut down successfully")
         
     except Exception as e:
         logger.error("Error during shutdown", exc_info=e)
@@ -145,16 +168,21 @@ async def health_check():
     }
 
 # Include API routers
-from src.api.v1 import health, payments, metrics as metrics_api
+from src.api.v1 import health, payments, metrics as metrics_api, resilience, webhooks
 from src.monitoring.middleware import MetricsMiddleware, HealthCheckMiddleware
 from src.monitoring.metrics import metrics
 from src.services.db_monitor import db_health_monitor
+from src.middleware.resilience import ResilienceMiddleware
+from src.providers import initialize_provider_manager
 
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])
+app.include_router(resilience.router, prefix="/api/v1", tags=["resilience"])
+app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
 app.include_router(metrics_api.router, tags=["monitoring"])
 
-# Add monitoring middleware
+# Add resilience and monitoring middleware (order matters - resilience first)
+app.add_middleware(ResilienceMiddleware)
 app.add_middleware(MetricsMiddleware)
 app.add_middleware(HealthCheckMiddleware)
 

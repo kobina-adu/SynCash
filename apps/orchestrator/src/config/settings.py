@@ -47,17 +47,26 @@ class Settings(BaseSettings):
     retry_backoff_max: float = Field(default=60.0, env="RETRY_BACKOFF_MAX")
     
     # Provider Configuration
-    mtn_api_url: str = Field(default="https://sandbox.momodeveloper.mtn.com", env="MTN_API_URL")
-    mtn_api_key: str = Field(default="", env="MTN_API_KEY")
-    mtn_api_secret: str = Field(default="", env="MTN_API_SECRET")
+    MTN_MOMO_SUBSCRIPTION_KEY: str = Field(default="", env="MTN_MOMO_SUBSCRIPTION_KEY")
+    MTN_MOMO_USER_ID: str = Field(default="", env="MTN_MOMO_USER_ID")
+    MTN_MOMO_API_KEY: str = Field(default="", env="MTN_MOMO_API_KEY")
+    MTN_MOMO_COLLECTION_USER_ID: str = Field(default="", env="MTN_MOMO_COLLECTION_USER_ID")
+    MTN_MOMO_DISBURSEMENT_USER_ID: str = Field(default="", env="MTN_MOMO_DISBURSEMENT_USER_ID")
     
-    airtel_api_url: str = Field(default="https://openapiuat.airtel.africa", env="AIRTEL_API_URL")
-    airtel_api_key: str = Field(default="", env="AIRTEL_API_KEY")
-    airtel_api_secret: str = Field(default="", env="AIRTEL_API_SECRET")
+    AIRTELTIGO_CLIENT_ID: str = Field(default="", env="AIRTELTIGO_CLIENT_ID")
+    AIRTELTIGO_CLIENT_SECRET: str = Field(default="", env="AIRTELTIGO_CLIENT_SECRET")
+    AIRTELTIGO_MERCHANT_ID: str = Field(default="", env="AIRTELTIGO_MERCHANT_ID")
+    AIRTELTIGO_API_KEY: str = Field(default="", env="AIRTELTIGO_API_KEY")
     
-    vodafone_api_url: str = Field(default="https://api.vodafone.com.gh", env="VODAFONE_API_URL")
-    vodafone_api_key: str = Field(default="", env="VODAFONE_API_KEY")
+    VODAFONE_MERCHANT_ID: str = Field(default="", env="VODAFONE_MERCHANT_ID")
+    VODAFONE_API_USERNAME: str = Field(default="", env="VODAFONE_API_USERNAME")
+    VODAFONE_API_PASSWORD: str = Field(default="", env="VODAFONE_API_PASSWORD")
+    VODAFONE_API_KEY: str = Field(default="", env="VODAFONE_API_KEY")
+    VODAFONE_SECRET_KEY: str = Field(default="", env="VODAFONE_SECRET_KEY")
     vodafone_api_secret: str = Field(default="", env="VODAFONE_API_SECRET")
+    
+    # Provider sandbox mode
+    PROVIDERS_SANDBOX_MODE: bool = Field(default=True, env="PROVIDERS_SANDBOX_MODE")
     
     # External Services
     fraud_detection_service_url: str = Field(default="http://localhost:8001", env="FRAUD_DETECTION_SERVICE_URL")
@@ -76,7 +85,35 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
-        case_sensitive = False
+        case_sensitive = True
+    
+    def get_provider_configs(self) -> dict:
+        """Get provider configurations for initialization"""
+        return {
+            "mtn_momo": {
+                "subscription_key": self.MTN_MOMO_SUBSCRIPTION_KEY,
+                "user_id": self.MTN_MOMO_USER_ID,
+                "api_key": self.MTN_MOMO_API_KEY,
+                "collection_user_id": self.MTN_MOMO_COLLECTION_USER_ID,
+                "disbursement_user_id": self.MTN_MOMO_DISBURSEMENT_USER_ID,
+                "sandbox": self.PROVIDERS_SANDBOX_MODE
+            },
+            "airteltigo_money": {
+                "client_id": self.AIRTELTIGO_CLIENT_ID,
+                "client_secret": self.AIRTELTIGO_CLIENT_SECRET,
+                "merchant_id": self.AIRTELTIGO_MERCHANT_ID,
+                "api_key": self.AIRTELTIGO_API_KEY,
+                "sandbox": self.PROVIDERS_SANDBOX_MODE
+            },
+            "vodafone_cash": {
+                "merchant_id": self.VODAFONE_MERCHANT_ID,
+                "api_username": self.VODAFONE_API_USERNAME,
+                "api_password": self.VODAFONE_API_PASSWORD,
+                "api_key": self.VODAFONE_API_KEY,
+                "secret_key": self.VODAFONE_SECRET_KEY,
+                "sandbox": self.PROVIDERS_SANDBOX_MODE
+            }
+        }
 
 @lru_cache()
 def get_settings() -> Settings:
