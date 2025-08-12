@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { TransactionDetailsModal } from '@/components/ui/TransactionDetailsModal'
 import { 
   Eye, 
   EyeOff,
@@ -82,39 +83,63 @@ const walletData = [
 const recentTransactions = [
   {
     id: 'TXN001',
-    type: 'received',
+    type: 'received' as const,
     amount: 250.00,
     description: 'Payment from Ama Osei',
     date: '2024-01-15T14:30:00Z',
-    status: 'completed',
-    avatar: 'AO'
+    status: 'completed' as const,
+    avatar: 'AO',
+    sender: 'Ama Osei',
+    method: 'MTN MoMo',
+    reference: 'MP240115001',
+    fee: 0.00,
+    category: 'Transfer',
+    notes: 'Payment for graphic design services'
   },
   {
     id: 'TXN002',
-    type: 'sent',
+    type: 'sent' as const,
     amount: 150.00,
     description: 'Airtime purchase',
     date: '2024-01-15T12:15:00Z',
-    status: 'completed',
-    avatar: null
+    status: 'completed' as const,
+    avatar: null,
+    recipient: 'MTN Ghana',
+    method: 'MTN MoMo',
+    reference: 'AT240115002',
+    fee: 2.50,
+    category: 'Airtime',
+    notes: 'Monthly airtime top-up'
   },
   {
     id: 'TXN003',
-    type: 'received',
+    type: 'received' as const,
     amount: 500.00,
     description: 'Salary advance',
     date: '2024-01-15T09:45:00Z',
-    status: 'completed',
-    avatar: 'SA'
+    status: 'completed' as const,
+    avatar: 'SA',
+    sender: 'Sunrise Analytics Ltd',
+    method: 'Bank Transfer',
+    reference: 'SA240115003',
+    fee: 0.00,
+    category: 'Salary',
+    notes: 'January salary advance payment'
   },
   {
     id: 'TXN004',
-    type: 'sent',
+    type: 'sent' as const,
     amount: 75.00,
     description: 'ECG bill payment',
     date: '2024-01-14T16:20:00Z',
-    status: 'pending',
-    avatar: null
+    status: 'pending' as const,
+    avatar: null,
+    recipient: 'Electricity Company of Ghana',
+    method: 'MTN MoMo',
+    reference: 'ECG240114004',
+    fee: 1.25,
+    category: 'Bills',
+    notes: 'December electricity bill payment'
   }
 ]
 
@@ -129,6 +154,18 @@ const chartData = [
 
 export default function DashboardPage() {
   const [balanceVisible, setBalanceVisible] = useState(true)
+  const [selectedTransaction, setSelectedTransaction] = useState<typeof recentTransactions[0] | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  const handleTransactionClick = (transaction: typeof recentTransactions[0]) => {
+    setSelectedTransaction(transaction)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedTransaction(null)
+  }
 
   const quickActions = [
     {
@@ -318,7 +355,11 @@ export default function DashboardPage() {
                   <CardContent>
                     <div className="space-y-4">
                       {recentTransactions.map((transaction) => (
-                        <div key={transaction.id} className="flex items-center justify-between p-4 rounded-xl hover:bg-grey-50 dark:hover:bg-navy-700 transition-colors">
+                        <div 
+                          key={transaction.id} 
+                          className="flex items-center justify-between p-4 rounded-xl hover:bg-grey-50 dark:hover:bg-navy-700 transition-colors cursor-pointer"
+                          onClick={() => handleTransactionClick(transaction)}
+                        >
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-grey-100 dark:bg-navy-700 flex items-center justify-center">
                               {transaction.avatar ? (
@@ -512,6 +553,13 @@ export default function DashboardPage() {
           </div>
         </div>
       </main>
+
+      {/* Transaction Details Modal */}
+      <TransactionDetailsModal
+        transaction={selectedTransaction}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   )
 }
