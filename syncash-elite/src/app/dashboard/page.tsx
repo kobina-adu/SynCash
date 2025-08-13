@@ -26,6 +26,7 @@ import {
   Building2,
   Wallet
 } 
+
 from 'lucide-react'
 import { formatCurrency, getInitials } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts'
@@ -154,7 +155,10 @@ const chartData = [
   { month: 'Dec', balance: 15847 }
 ]
 
+import { useRouter } from 'next/navigation'
+
 export default function DashboardPage() {
+  const router = useRouter();
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [selectedTransaction, setSelectedTransaction] = useState<typeof recentTransactions[0] | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -322,7 +326,11 @@ export default function DashboardPage() {
                         key={index} 
                         variant="hover" 
                         className="p-6 text-center cursor-pointer transition-transform hover:scale-105"
-                        onClick={() => window.location.href = action.href}
+                        onClick={() => {
+  if (action.href) {
+    router.push(action.href)
+  }
+}}
                       >
                         <div className={`w-12 h-12 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center mx-auto mb-3 shadow-medium`}>
                           <IconComponent className="text-white" size={24} />

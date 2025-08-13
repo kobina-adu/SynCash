@@ -35,6 +35,8 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   })
+  const [showDeveloper, setShowDeveloper] = useState(false)
+  const devDemo = { email: 'dev@syncash.com', password: 'Dev123!' }
   const [errors, setErrors] = useState<FormErrors>({})
 
   const validateForm = (): boolean => {
@@ -80,16 +82,31 @@ export default function LoginPage() {
     setLoading(true)
     
     try {
-      
+      // Developer login mock (uses demo values)
+      if (
+        formData.email === 'dev@syncash.com' &&
+        formData.password === 'Dev123!'
+      ) {
+        toast.success('Welcome Developer!')
+        router.push('/developer-dashboard')
+        return
+      }
+      // Regular user login mock
+      if (
+        formData.email === 'demo@syncash.com' &&
+        formData.password === 'Demo123!'
+      ) {
+        toast.success('Welcome back!')
+        router.push('/dashboard')
+        return
+      }
+      toast.error('Invalid email or password')
     } catch (error) {
       toast.error('Invalid email or password')
       return
     } finally {
       setLoading(false)
     }
-    // Mock successful login
-    toast.success('Welcome back!')
-    router.push('/dashboard')
   }
 
   const handleBiometricLogin = async () => {
@@ -173,9 +190,27 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-
+                {/* Developer Access Hyperlink */}
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    className="text-blue-500 hover:text-blue-700 text-sm font-medium underline"
+                    onClick={() => {
+                      setFormData({ email: '', password: '', rememberMe: false });
+                      setShowDeveloper(true);
+                    }}
+                  >
+                    Developer Access
+                  </button>
+                </div>
+                {showDeveloper && (
+                  <div className="text-xs text-blue-700 mt-2 text-right">
+                    Developer mode: Enter developer credentials to proceed
+                  </div>
+                )}
                 {/* Submit Button */}
                 <Button
+                  id="dev-login-btn"
                   type="submit"
                   className="w-full"
                   size="lg"
@@ -256,6 +291,15 @@ export default function LoginPage() {
                 </div>
                 <div className="text-yellow-800 dark:text-yellow-400">
                   Password: Demo123!
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400 mt-2">
+                  <span className="font-semibold">Developer Demo:</span>
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400">
+                  Email: dev@syncash.com
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400">
+                  Password: Dev123!
                 </div>
               </div>
             </CardContent>
