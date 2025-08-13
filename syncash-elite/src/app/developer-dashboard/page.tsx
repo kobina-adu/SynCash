@@ -23,24 +23,16 @@ export default function DeveloperDashboard() {
               </p>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Link href="/developer-dashboard/api-docs">
-                  <Button className="w-full" variant="secondary">API Documentation</Button>
+              <div className="flex flex-col md:flex-row gap-6 justify-center items-center mt-6">
+                <Link href="/developer-dashboard/api-docs" className="w-full md:w-1/2">
+                  <Button className="w-full py-6 text-lg font-semibold shadow-md bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all">
+                    API Documentation
+                  </Button>
                 </Link>
-                <Link href="/developer-dashboard/logs">
-                  <Button className="w-full" variant="secondary">System Logs</Button>
-                </Link>
-                <Link href="/developer-dashboard/users">
-                  <Button className="w-full" variant="secondary">User Management</Button>
-                </Link>
-                <Link href="/developer-dashboard/metrics">
-                  <Button className="w-full" variant="secondary">App Metrics</Button>
-                </Link>
-                <Link href="/developer-dashboard/config">
-                  <Button className="w-full" variant="secondary">Configuration</Button>
-                </Link>
-                <Link href="/developer-dashboard/db-tools">
-                  <Button className="w-full" variant="secondary">Database Tools</Button>
+                <Link href="/developer-dashboard/usage-stats" className="w-full md:w-1/2">
+                  <Button className="w-full py-6 text-lg font-semibold shadow-md bg-gradient-to-r from-purple-500 to-purple-600 text-white hover:from-purple-600 hover:to-purple-700 transition-all">
+                    Usage Statistics
+                  </Button>
                 </Link>
               </div>
             </CardContent>

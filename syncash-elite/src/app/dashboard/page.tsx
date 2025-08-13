@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import Image from 'next/image';
 import { motion } from 'framer-motion'
 //import RequestPayment from "./RequestPayment";
@@ -41,10 +41,25 @@ const userData = {
   lastLogin: '2024-01-15T10:30:00Z'
 }
 
-const walletData = [
+type Wallet = {
+  name: string;
+  balance: number;
+  percentage: number;
+  color: string;
+  icon: any;
+  logo: string;
+  textColor: string;
+  phoneNumber?: string;
+  accountNumber?: string;
+  [key: string]: any;
+};
+
+const initialWallets: Wallet[] = [
   
 {
   name: 'MTN MoMo',
+  type: 'mobile',
+  phoneNumber: '0241234567',
   balance: 8500.0,
   percentage: 53.6,
   color: '#FFD700',
@@ -55,6 +70,8 @@ const walletData = [
 
   { 
     name: 'Telecel Cash', 
+    type: 'mobile',
+    phoneNumber: '0207654321', 
     balance: 4200.00, 
     percentage: 26.5, 
     color: '#FF6B6B', 
@@ -64,6 +81,8 @@ const walletData = [
   },
   { 
     name: 'AirtelTigo', 
+    type: 'mobile',
+    phoneNumber: '0279876543', 
     balance: 1847.50, 
     percentage: 11.7, 
     color: '#4ECDC4', 
@@ -74,6 +93,8 @@ const walletData = [
   },
   { 
     name: 'GCB Bank', 
+    type: 'bank',
+    accountNumber: '0012345678', 
     balance: 1300.00, 
     percentage: 8.2, 
     color: '#45B7D1', 
@@ -157,7 +178,45 @@ const chartData = [
 
 import { useRouter } from 'next/navigation'
 
+import { useSearchParams } from 'next/navigation'
+
 export default function DashboardPage() {
+  const searchParams = useSearchParams();
+  const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
+
+  useEffect(() => {
+    const newAccountParam = searchParams.get('newAccount');
+    if (newAccountParam) {
+      try {
+        const newAccount = JSON.parse(newAccountParam);
+        // Deduplication logic: check by phoneNumber (mobile) or accountNumber (bank)
+        const isDuplicate = wallets.some(w =>
+          (w.type === 'mobile' && newAccount.type === 'mobile' && w.phoneNumber === newAccount.phoneNumber) ||
+          (w.type === 'bank' && newAccount.type === 'bank' && w.accountNumber === newAccount.accountNumber)
+        );
+        // Always clear newAccount param after processing
+        if (typeof window !== 'undefined') {
+          const url = new URL(window.location.href);
+          url.searchParams.delete('newAccount');
+          window.history.replaceState({}, document.title, url.pathname + url.search);
+        }
+        if (isDuplicate) {
+          // Optionally, show a toast if available
+          if (typeof window !== 'undefined' && (window as any).toast) {
+            (window as any).toast.error('Account already exists!');
+          }
+          return;
+        }
+        setWallets((prev: Wallet[]) => [...prev, {
+          ...newAccount,
+          balance: 0, // Default balance for new account
+          percentage: 0.0, // Default percentage
+          color: '#FFA500', // Default color for new account, can be improved
+          textColor: 'text-orange-600 dark:text-orange-400',
+        }]);
+      } catch {}
+    }
+  }, [searchParams, wallets]);
   const router = useRouter();
   const [balanceVisible, setBalanceVisible] = useState(true)
   const [selectedTransaction, setSelectedTransaction] = useState<typeof recentTransactions[0] | null>(null)
@@ -443,7 +502,7 @@ export default function DashboardPage() {
                         <ResponsiveContainer width="100%" height="100%">
                           <PieChart>
                             <Pie
-                              data={walletData}
+                              data={wallets}
                               cx="50%"
                               cy="50%"
                               innerRadius={40}
@@ -451,7 +510,7 @@ export default function DashboardPage() {
                               paddingAngle={2}
                               dataKey="balance"
                             >
-                              {walletData.map((entry, index) => (
+                              {wallets.map((entry: Wallet, index: number) => (
                                 <Cell key={`cell-${index}`} fill={entry.color} />
                               ))}
                             </Pie>
@@ -464,7 +523,7 @@ export default function DashboardPage() {
 
                       {/* Wallet List */}
                       <div className="space-y-3">
-                        {walletData.map((wallet, index) => {
+                        {wallets.map((wallet: Wallet, index: number) => {
                           return (
                             <div key={index} className="flex items-center justify-between p-3 rounded-xl hover:bg-grey-50 dark:hover:bg-navy-700 transition-colors">
                               <div className="flex items-center gap-3">
@@ -479,6 +538,11 @@ export default function DashboardPage() {
                                   <div>
                                     <span className="font-medium text-navy-900 dark:text-white block">
                                       {wallet.name}
+                                    </span>
+                                    {/* Show phone/account number for differentiation */}
+                                    <span className="text-xs text-grey-600 dark:text-grey-300 block">
+                                      {wallet.type === 'mobile' && wallet.phoneNumber ? `(${wallet.phoneNumber})` : ''}
+                                      {wallet.type === 'bank' && wallet.accountNumber ? `(${wallet.accountNumber})` : ''}
                                     </span>
                                     <span className={`text-xs ${wallet.textColor} font-medium`}>
                                       {wallet.name === 'MTN MoMo' ||

@@ -35,7 +35,6 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   })
-  const [showDeveloper, setShowDeveloper] = useState(false)
   const devDemo = { email: 'dev@syncash.com', password: 'Dev123!' }
   const [errors, setErrors] = useState<FormErrors>({})
 
@@ -82,23 +81,15 @@ export default function LoginPage() {
     setLoading(true)
     
     try {
-      // Developer login mock (uses demo values)
-      if (
-        formData.email === 'dev@syncash.com' &&
-        formData.password === 'Dev123!'
-      ) {
-        toast.success('Welcome Developer!')
-        router.push('/developer-dashboard')
-        return
+      if (formData.email === 'dev@syncash.com' && formData.password === 'Dev123!') {
+        toast.success('Welcome, Developer!');
+        router.push('/developer-dashboard');
+        return;
       }
-      // Regular user login mock
-      if (
-        formData.email === 'demo@syncash.com' &&
-        formData.password === 'Demo123!'
-      ) {
-        toast.success('Welcome back!')
-        router.push('/dashboard')
-        return
+      if (formData.email === 'demo@syncash.com' && formData.password === 'Demo123!') {
+        toast.success('Welcome, ' + formData.email + '!');
+        router.push('/dashboard');
+        return;
       }
       toast.error('Invalid email or password')
     } catch (error) {
@@ -190,24 +181,7 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-                {/* Developer Access Hyperlink */}
-                <div className="flex justify-end mt-2">
-                  <button
-                    type="button"
-                    className="text-blue-500 hover:text-blue-700 text-sm font-medium underline"
-                    onClick={() => {
-                      setFormData({ email: '', password: '', rememberMe: false });
-                      setShowDeveloper(true);
-                    }}
-                  >
-                    Developer Access
-                  </button>
-                </div>
-                {showDeveloper && (
-                  <div className="text-xs text-blue-700 mt-2 text-right">
-                    Developer mode: Enter developer credentials to proceed
-                  </div>
-                )}
+                
                 {/* Submit Button */}
                 <Button
                   id="dev-login-btn"
@@ -220,6 +194,7 @@ export default function LoginPage() {
                   <ArrowRight size={20} />
                 </Button>
               </form>
+
 
               {/* Divider */}
               <div className="relative my-6">
@@ -255,6 +230,34 @@ export default function LoginPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+
+              {/* Developer/User Toggle Button */}
+              <div className="mt-6 flex flex-col items-center">
+                {formData.email === devDemo.email && formData.password === devDemo.password ? (
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white font-semibold shadow-lg border-2 border-purple-400 hover:from-purple-600 hover:to-purple-800 transition mb-2"
+                    onClick={() => setFormData({ email: '', password: '', rememberMe: false })}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm-2-7h4a1 1 0 0 1 0 2h-4a1 1 0 1 1 0-2Zm0-4h4a1 1 0 0 1 0 2h-4a1 1 0 1 1 0-2Z"/></svg>
+                      Login as User
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white font-semibold shadow-lg border-2 border-purple-400 hover:from-purple-600 hover:to-purple-800 transition mb-2"
+                    onClick={() => setFormData({ email: devDemo.email, password: devDemo.password, rememberMe: false })}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M4 17v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Zm8-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg>
+                      Login as Developer
+                      <span className="ml-2 bg-white text-purple-700 rounded px-2 py-0.5 text-xs font-bold shadow">DEV</span>
+                    </span>
+                  </button>
+                )}
               </div>
 
               {/* Sign Up Link */}
