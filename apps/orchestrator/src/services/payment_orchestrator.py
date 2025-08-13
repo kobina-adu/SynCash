@@ -7,6 +7,7 @@ import structlog
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import uuid
+import time
 
 from src.models.transaction import (
     Transaction, TransactionStatus, PaymentProvider, 
@@ -14,6 +15,7 @@ from src.models.transaction import (
 )
 from src.core.database import get_db_session
 from src.config.settings import get_settings
+from src.core.metrics import get_metrics_collector
 
 logger = structlog.get_logger(__name__)
 
@@ -24,6 +26,7 @@ class PaymentOrchestrator:
     
     def __init__(self):
         self.settings = get_settings()
+        self.metrics = get_metrics_collector()
     
     async def initiate_payment(
         self,
@@ -48,6 +51,9 @@ class PaymentOrchestrator:
         Returns:
             Transaction details
         """
+        # Start metrics tracking
+        start_time = time.time()
+        
         logger.info(
             "Initiating payment",
             user_id=user_id,
@@ -73,30 +79,87 @@ class PaymentOrchestrator:
             risk_level = await self._basic_fraud_check(transaction)
             transaction.risk_level = risk_level
             
+            # Record fraud check metrics
+            self.metrics.record_fraud_check(risk_level, "completed", transaction.fraud_score)
+            
             if risk_level == "CRITICAL":
+                self.metrics.record_blocked_transaction("fraud_risk", risk_level)
                 await self._update_transaction_status(
                     transaction, TransactionStatus.FAILED, 
                     error_message="Transaction blocked due to high fraud risk"
                 )
                 return {"success": False, "error": "Transaction blocked", "transaction_id": str(transaction.id)}
             
-            # Step 4: Move to pending status
-            await self._update_transaction_status(transaction, TransactionStatus.PENDING)
-            
-            logger.info(
-                "Payment initiated successfully",
-                transaction_id=str(transaction.id),
-                user_id=user_id
-            )
-            
+            # Step 4: Select provider (for now, pick MTN for demo; can randomize or use logic)
+            from src.models.transaction import PaymentProvider
+            provider = PaymentProvider.MTN
+            transaction.primary_provider = provider
+
+            # Step 5: Provider call (simulate or real)
+            provider_result = None
+            from src.services.provider_simulation import simulate_provider_payment
+            if self.settings.provider_simulation:
+                try:
+                    provider_result = await simulate_provider_payment(provider, amount, recipient_phone, metadata)
+                    if provider_result['status'] == 'confirmed':
+                        await self._update_transaction_status(transaction, TransactionStatus.CONFIRMED)
+                        logger.info("Simulated provider success", provider=provider.value, ref=provider_result['provider_ref'])
+                        self.metrics.record_provider_api_call(provider.value, "success")
+                        return {
+                            "success": True,
+                            "transaction_id": str(transaction.id),
+                            "status": TransactionStatus.CONFIRMED.value,
+                            "provider_ref": provider_result['provider_ref'],
+                            "message": provider_result['message']
+                        }
+                    elif provider_result['status'] == 'failed':
+                        await self._update_transaction_status(transaction, TransactionStatus.FAILED, error_message=provider_result['error'])
+                        logger.warning("Simulated provider failure", provider=provider.value, error=provider_result['error'])
+                        self.metrics.record_provider_api_call(provider.value, "failed")
+                        return {
+                            "success": False,
+                            "transaction_id": str(transaction.id),
+                            "status": TransactionStatus.FAILED.value,
+                            "error": provider_result['error']
+                        }
+                except Exception as e:
+                    # Simulated timeout or error
+                    await self._update_transaction_status(transaction, TransactionStatus.PENDING, error_message=str(e))
+                    logger.error("Simulated provider timeout/error", provider=provider.value, error=str(e))
+                    self.metrics.record_provider_api_call(provider.value, "timeout")
+                    return {
+                        "success": False,
+                        "transaction_id": str(transaction.id),
+                        "status": TransactionStatus.PENDING.value,
+                        "error": str(e)
+                    }
+            else:
+                # Placeholder for real provider integration
+                # TODO: Integrate with real provider APIs when ready
+                await self._update_transaction_status(transaction, TransactionStatus.PENDING)
+                logger.info("Real provider integration not yet implemented", provider=provider.value)
+                return {
+                    "success": True,
+                    "transaction_id": str(transaction.id),
+                    "status": TransactionStatus.PENDING.value,
+                    "message": "Real provider integration coming soon."
+                }
+
+            # Fallback (should not reach here)
             return {
-                "success": True,
+                "success": False,
                 "transaction_id": str(transaction.id),
                 "status": transaction.status.value,
-                "estimated_completion": (datetime.utcnow() + timedelta(minutes=5)).isoformat()
+                "error": "Unknown provider outcome"
             }
+
             
         except Exception as e:
+            # Record error metrics
+            duration = time.time() - start_time
+            self.metrics.record_payment_duration(duration, "failed", "unknown", "unknown")
+            self.metrics.record_application_error(type(e).__name__, "payment_orchestrator", "error")
+            
             logger.error("Payment initiation failed", exc_info=e, user_id=user_id)
             return {"success": False, "error": str(e)}
     
@@ -201,6 +264,13 @@ class PaymentOrchestrator:
         
         if updated_by:
             transaction.updated_by = updated_by
+        
+        # Record status change metrics
+        self.metrics.record_status_change(
+            old_status.value if old_status else "none",
+            new_status.value,
+            transaction.primary_provider.value if transaction.primary_provider else "unknown"
+        )
         
         # Create event log
         event = TransactionEvent(

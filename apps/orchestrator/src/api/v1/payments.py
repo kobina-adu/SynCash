@@ -52,8 +52,11 @@ class TransactionStatusResponse(BaseModel):
 # Initialize orchestrator
 orchestrator = PaymentOrchestrator()
 
+from fastapi import Depends, Request
+from src.core.hmac_auth import verify_hmac_request
+
 @router.post("/payments/initiate", response_model=PaymentResponse)
-async def initiate_payment(payment_request: PaymentRequest):
+async def initiate_payment(payment_request: PaymentRequest, request: Request, _: None = Depends(verify_hmac_request)):
     """
     Initiate a new payment transaction
     

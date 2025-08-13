@@ -1,0 +1,11 @@
+groups:
+  - name: orchestrator.rules
+    rules:
+      - alert: OrchestratorDown
+        expr: up{job="orchestrator"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SyncCash Orchestrator API is down"
+          description: "No scrape data from orchestrator service for more than 1 minute. Check container, logs, or network connectivity."

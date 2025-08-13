@@ -79,6 +79,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Add metrics middleware
+from src.core.middleware import MetricsMiddleware
+app.add_middleware(MetricsMiddleware)
+
 # Add request timing middleware
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -118,10 +122,11 @@ async def health_check():
     }
 
 # Include API routers
-from src.api.v1 import health, payments
+from src.api.v1 import health, payments, metrics
 
 app.include_router(health.router, prefix="/api/v1", tags=["health"])
 app.include_router(payments.router, prefix="/api/v1", tags=["payments"])
+app.include_router(metrics.router, prefix="/api/v1", tags=["metrics"])
 
 # Root endpoint
 @app.get("/")

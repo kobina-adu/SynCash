@@ -10,6 +10,13 @@ from typing import List, Optional
 class Settings(BaseSettings):
     """Application settings"""
     
+    # Provider simulation toggle
+    provider_simulation: bool = Field(default=False, env="PROVIDER_SIMULATION")
+
+    # HMAC security
+    hmac_secret: str = Field(default="changeme-supersecret", env="HMAC_SECRET")
+    hmac_window_seconds: int = Field(default=120, env="HMAC_WINDOW_SECONDS")  # 2 min window
+
     # Application
     app_name: str = "SyncCash Orchestrator"
     app_version: str = "1.0.0"
