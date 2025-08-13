@@ -1,4 +1,5 @@
 /** @type {import('next').NextConfig} */
+
 const nextConfig = {
   experimental: {
     appDir: true,
@@ -8,6 +9,14 @@ const nextConfig = {
   },
   env: {
     CUSTOM_KEY: 'my-value',
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/proxy/:path*',
+        destination: 'http://localhost:8787/:path*', // Hono backend
+      },
+    ]
   },
 }
 

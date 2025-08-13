@@ -25,7 +25,6 @@ import { validatePhone } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
-import { log } from 'console';
 
 // Available wallet providers
 const walletProviders = [

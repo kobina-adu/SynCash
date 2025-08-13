@@ -2,12 +2,13 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import nodemailer from "nodemailer";
-
+import dotenv from "dotenv";
 
 import { twoFactor } from "better-auth/plugins";
 import { db } from "./db.js";
 import { users } from "./schema.js";
 
+dotenv.configDotenv()
 
 const transporter = nodemailer.createTransport({
   service: "gmail",
@@ -53,4 +54,3 @@ export const auth = betterAuth({
     }),
   ],
 });
-

@@ -80,17 +80,16 @@ export default function LoginPage() {
     setLoading(true)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Mock successful login
-      toast.success('Welcome back!')
-      router.push('/dashboard')
     } catch (error) {
       toast.error('Invalid email or password')
+      return
     } finally {
       setLoading(false)
     }
+    // Mock successful login
+    toast.success('Welcome back!')
+    router.push('/dashboard')
   }
 
   const handleBiometricLogin = async () => {
