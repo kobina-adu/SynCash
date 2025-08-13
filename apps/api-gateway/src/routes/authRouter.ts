@@ -62,4 +62,23 @@ authRouter.post('/login', async (c) => {
   return c.json(result);
 });
 
+
+// Request OTP (for sign-in)
+authRouter.post('/auth/send-otp', async (c) => {
+  const { email } = await c.req.json();
+  await auth.sendOTP({ email, type: 'sign-in' });
+  return c.json({ ok: true });
+});
+
+// Verify OTP
+authRouter.post('/auth/verify-otp', async (c) => {
+  const { email, otp } = await c.req.json();
+  const result = await auth.verifyOTP({ email, otp, type: 'sign-in' });
+  if (result.success) {
+    // Generate session or token if necessary (you can return a JWT or session cookie)
+    return c.json({ ok: true, message: 'OTP verified' });
+  }
+  return c.json({ ok: false, message: 'Invalid OTP' }, 400);
+});
+
 export default authRouter

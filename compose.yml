@@ -1,4 +1,27 @@
 services:
+  api-gateway:
+    build:
+      context: ./apps/api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - orchestrator
+    restart: always
+
+  web:
+    build:
+      context: ./syncash-elite
+    container_name: web
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api-gateway
+
   # Orchestrator API
   orchestrator:
     build:

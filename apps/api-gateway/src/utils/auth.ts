@@ -4,7 +4,6 @@ import { emailOTP } from "better-auth/plugins/email-otp";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 
-import { twoFactor } from "better-auth/plugins";
 import { db } from "./db.js";
 import { users } from "./schema.js";
 
@@ -13,8 +12,8 @@ dotenv.configDotenv()
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.GMAIL_USER, // Your Gmail address
-    pass: process.env.GMAIL_APP_PASSWORD, // The app password from Step 1
+    user: process.env.GMAIL_USER!, 
+    pass: process.env.GMAIL_APP_PASSWORD!, 
   },
 });
 
@@ -29,7 +28,7 @@ export const auth = betterAuth({
     plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        let subject, text;
+        let subject = '', text = '';
 
         if (type === "sign-in") {
           subject = "Your Sign-In OTP";

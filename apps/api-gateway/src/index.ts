@@ -4,14 +4,22 @@ import { Hono } from 'hono';
 import dotenv from 'dotenv';
 
 import authRouter from './routes/authRouter.js';
-
-
 dotenv.config() 
 const app = new Hono();
 
 
+app.use('*', async (c, next) => {
+  c.header('Access-Control-Allow-Origin', process.env.CORS_ORIGIN || '*');
+  c.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  c.header('Access-Control-Allow-Headers', 'Content-Type');
+  if (c.req.method === 'OPTIONS') return c.text('OK');
+  await next();
+});
+
+
 app.use(logger());
 
+app.get('/health', (c) => c.json({ ok: true }));
 
 app.route("/auth", authRouter);
 
