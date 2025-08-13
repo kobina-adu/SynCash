@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -17,7 +17,7 @@ import {
   Shield
 } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
 interface FormData {
@@ -39,10 +39,18 @@ interface FormErrors {
   confirmPassword?: string
   acceptTerms?: string
 }
-
 export default function SignUpPage() {
-  const router = useRouter()
-  const [loading, setLoading] = useState(false)
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const role = searchParams.get("role");
+
+  useEffect(() => {
+    if (!role) {
+      router.replace("/auth/choose-role");
+    }
+  }, [role, router]);
+
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
@@ -51,10 +59,10 @@ export default function SignUpPage() {
     password: '',
     confirmPassword: '',
     acceptTerms: false
-  })
-  const [errors, setErrors] = useState<FormErrors>({})
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const validateForm = (): boolean => {
+    const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
     // Name validation
@@ -106,7 +114,7 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleInputChange = (field: keyof FormData) => (
+    const handleInputChange = (field: keyof FormData) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -118,7 +126,7 @@ export default function SignUpPage() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {

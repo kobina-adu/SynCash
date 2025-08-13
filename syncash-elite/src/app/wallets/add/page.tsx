@@ -214,6 +214,18 @@ export default function AddWalletPage() {
       await new Promise(resolve => setTimeout(resolve, 1500))
       setStep(4)
       toast.success('Account linked successfully!')
+      // Redirect to dashboard with new account info
+      const accountPayload = {
+        name: selectedProvider?.name,
+        type: selectedProvider?.type,
+        logo: selectedProvider?.logo,
+        color: selectedProvider?.color || '#FFA500',
+        textColor: 'text-orange-600 dark:text-orange-400',
+        // Add user-provided info
+        ...formData
+      };
+      const params = new URLSearchParams({ newAccount: JSON.stringify(accountPayload) });
+      router.push(`/dashboard?${params.toString()}`);
     } catch (error) {
       toast.error('Invalid OTP. Please try again.')
     } finally {

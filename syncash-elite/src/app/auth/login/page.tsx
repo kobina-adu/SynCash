@@ -35,6 +35,7 @@ export default function LoginPage() {
     password: '',
     rememberMe: false
   })
+  const devDemo = { email: 'dev@syncash.com', password: 'Dev123!' }
   const [errors, setErrors] = useState<FormErrors>({})
 
   const validateForm = (): boolean => {
@@ -80,16 +81,23 @@ export default function LoginPage() {
     setLoading(true)
     
     try {
-      
+      if (formData.email === 'dev@syncash.com' && formData.password === 'Dev123!') {
+        toast.success('Welcome, Developer!');
+        router.push('/developer-dashboard');
+        return;
+      }
+      if (formData.email === 'demo@syncash.com' && formData.password === 'Demo123!') {
+        toast.success('Welcome, ' + formData.email + '!');
+        router.push('/dashboard');
+        return;
+      }
+      toast.error('Invalid email or password')
     } catch (error) {
       toast.error('Invalid email or password')
       return
     } finally {
       setLoading(false)
     }
-    // Mock successful login
-    toast.success('Welcome back!')
-    router.push('/dashboard')
   }
 
   const handleBiometricLogin = async () => {
@@ -173,9 +181,10 @@ export default function LoginPage() {
                     Forgot password?
                   </Link>
                 </div>
-
+                
                 {/* Submit Button */}
                 <Button
+                  id="dev-login-btn"
                   type="submit"
                   className="w-full"
                   size="lg"
@@ -185,6 +194,7 @@ export default function LoginPage() {
                   <ArrowRight size={20} />
                 </Button>
               </form>
+
 
               {/* Divider */}
               <div className="relative my-6">
@@ -222,6 +232,34 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              {/* Developer/User Toggle Button */}
+              <div className="mt-6 flex flex-col items-center">
+                {formData.email === devDemo.email && formData.password === devDemo.password ? (
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white font-semibold shadow-lg border-2 border-purple-400 hover:from-purple-600 hover:to-purple-800 transition mb-2"
+                    onClick={() => setFormData({ email: '', password: '', rememberMe: false })}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm-2-7h4a1 1 0 0 1 0 2h-4a1 1 0 1 1 0-2Zm0-4h4a1 1 0 0 1 0 2h-4a1 1 0 1 1 0-2Z"/></svg>
+                      Login as User
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-gradient-to-br from-purple-500 to-purple-700 text-white font-semibold shadow-lg border-2 border-purple-400 hover:from-purple-600 hover:to-purple-800 transition mb-2"
+                    onClick={() => setFormData({ email: devDemo.email, password: devDemo.password, rememberMe: false })}
+                  >
+                    <span className="inline-flex items-center gap-2">
+                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path fill="currentColor" d="M4 17v-2a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v2a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Zm8-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"/></svg>
+                      Login as Developer
+                      <span className="ml-2 bg-white text-purple-700 rounded px-2 py-0.5 text-xs font-bold shadow">DEV</span>
+                    </span>
+                  </button>
+                )}
+              </div>
+
               {/* Sign Up Link */}
               <div className="mt-6 text-center">
                 <p className="text-grey-600 dark:text-grey-300">
@@ -256,6 +294,15 @@ export default function LoginPage() {
                 </div>
                 <div className="text-yellow-800 dark:text-yellow-400">
                   Password: Demo123!
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400 mt-2">
+                  <span className="font-semibold">Developer Demo:</span>
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400">
+                  Email: dev@syncash.com
+                </div>
+                <div className="text-yellow-800 dark:text-yellow-400">
+                  Password: Dev123!
                 </div>
               </div>
             </CardContent>
