@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import Image from 'next/image';
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -24,6 +25,7 @@ import { validatePhone } from '@/lib/utils'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { log } from 'console';
 
 // Available wallet providers
 const walletProviders = [
@@ -31,18 +33,21 @@ const walletProviders = [
     id: 'mtn',
     name: 'MTN Mobile Money',
     type: 'mobile',
-    icon: Smartphone,
-    color: 'bg-yellow-500',
+    icon: 'mtn.jpg',
+    logo: 'mtn.jpg',
+    //color: 'bg-yellow-500',
     description: 'Link your MTN MoMo account',
     requirements: ['Phone number', 'PIN'],
     fees: 'Free linking'
+    
   },
   {
     id: 'telecel',
     name: 'Telecel Cash',
     type: 'mobile',
-    icon: Smartphone,
-    color: 'bg-red-500',
+    icon: 'telecel.png',
+    logo: 'telecel.png',
+    //color: 'bg-red-500',
     description: 'Connect your Telecel Cash wallet',
     requirements: ['Phone number', 'PIN'],
     fees: 'Free linking'
@@ -51,8 +56,9 @@ const walletProviders = [
     id: 'airteltigo',
     name: 'AirtelTigo Money',
     type: 'mobile',
-    icon: Smartphone,
-    color: 'bg-teal-500',
+    icon: 'aitel.jpg',
+    logo: 'aitel.jpg',
+   // color: 'bg-teal-500',
     description: 'Add your AirtelTigo Money account',
     requirements: ['Phone number', 'PIN'],
     fees: 'Free linking'
@@ -61,8 +67,9 @@ const walletProviders = [
     id: 'gcb',
     name: 'GCB Bank',
     type: 'bank',
-    icon: Building2,
-    color: 'bg-blue-500',
+    icon: 'gcb.jpg',
+    logo: 'gcb.jpg',
+    //color: 'bg-blue-500',
     description: 'Connect your GCB Bank account',
     requirements: ['Account number', 'Internet banking PIN'],
     fees: 'Free linking'
@@ -71,8 +78,9 @@ const walletProviders = [
     id: 'ecobank',
     name: 'Ecobank Ghana',
     type: 'bank',
-    icon: Building2,
-    color: 'bg-green-500',
+    icon: 'ecobank.jpg',
+    logo: 'ecobank.jpg',
+    //color: 'bg-green-500',
     description: 'Link your Ecobank account',
     requirements: ['Account number', 'Internet banking PIN'],
     fees: 'Free linking'
@@ -81,8 +89,10 @@ const walletProviders = [
     id: 'absa',
     name: 'Absa Bank Ghana',
     type: 'bank',
-    icon: Building2,
-    color: 'bg-purple-500',
+   // color: 'bg-purple-500',
+    icon: 'absa.jpg',
+    logo: 'absa.jpg',
+    
     description: 'Connect your Absa account',
     requirements: ['Account number', 'Internet banking PIN'],
     fees: 'Free linking'
@@ -261,8 +271,8 @@ export default function AddWalletPage() {
                   whileTap={{ scale: 0.98 }}
                   className="text-left p-6 rounded-2xl border border-grey-200 dark:border-navy-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
                 >
-                  <div className={`w-12 h-12 ${provider.color} rounded-xl flex items-center justify-center mb-4`}>
-                    <IconComponent className="text-white" size={24} />
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+                    <Image src={`/images/${provider.icon}`} height={65} width={65} alt={provider.name} />
                   </div>
                   <h3 className="font-semibold text-navy-900 dark:text-white mb-2">
                     {provider.name}
@@ -300,8 +310,8 @@ export default function AddWalletPage() {
                   whileTap={{ scale: 0.98 }}
                   className="text-left p-6 rounded-2xl border border-grey-200 dark:border-navy-700 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-all"
                 >
-                  <div className={`w-12 h-12 ${provider.color} rounded-xl flex items-center justify-center mb-4`}>
-                    <IconComponent className="text-white" size={24} />
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4">
+                 <Image src={`/images/${provider.logo}`} height={65} width={65} alt={provider.name} className="text-lg" />
                   </div>
                   <h3 className="font-semibold text-navy-900 dark:text-white mb-2">
                     {provider.name}
@@ -568,10 +578,15 @@ export default function AddWalletPage() {
             {step === 1 && renderStep1()}
             {step === 2 && renderStep2()}
             {step === 3 && renderStep3()}
-            {step === 4 && renderStep4()}
+            {step === 4 && renderStep4()}   
           </motion.div>
         </div>
       </main>
     </div>
   )
+  return (
+    <div className="p-6">
+      {/* <TransactionHistory /> */}
+    </div>
+  );
 }

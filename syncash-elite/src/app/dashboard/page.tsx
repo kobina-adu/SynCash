@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image';
 import { motion } from 'framer-motion'
+//import RequestPayment from "./RequestPayment";
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { TransactionDetailsModal } from '@/components/ui/TransactionDetailsModal'
@@ -24,7 +25,8 @@ import {
   Smartphone,
   Building2,
   Wallet
-} from 'lucide-react'
+} 
+from 'lucide-react'
 import { formatCurrency, getInitials } from '@/lib/utils'
 import { PieChart, Pie, Cell, ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip } from 'recharts'
 
@@ -45,15 +47,8 @@ const walletData = [
   balance: 8500.0,
   percentage: 53.6,
   color: '#FFD700',
-  icon: (
-    <Image
-      src="/logos/mtn.jpeg"
-      alt="mtn momo logo"
-      width={40}
-      height={40}
-    />
-  ),
-  bgColor: 'bg-yellow-100 dark:bg-yellow-500/20',
+  icon: "mtn.jpg",
+  logo: "mtn.jpg",
   textColor: 'text-yellow-600 dark:text-yellow-400'
 },
 
@@ -63,8 +58,7 @@ const walletData = [
     percentage: 26.5, 
     color: '#FF6B6B', 
     icon: Smartphone,
-    logo: '📲',
-    bgColor: 'bg-red-100 dark:bg-red-500/20',
+    logo: 'telecel.png',
     textColor: 'text-red-600 dark:text-red-400'
   },
   { 
@@ -73,8 +67,8 @@ const walletData = [
     percentage: 11.7, 
     color: '#4ECDC4', 
     icon: Smartphone,
-    logo: '📞',
-    bgColor: 'bg-teal-100 dark:bg-teal-500/20',
+    logo: 'aitel.jpg',
+
     textColor: 'text-teal-600 dark:text-teal-400'
   },
   { 
@@ -83,8 +77,7 @@ const walletData = [
     percentage: 8.2, 
     color: '#45B7D1', 
     icon: Building2,
-    logo: '🏦',
-    bgColor: 'bg-blue-100 dark:bg-blue-500/20',
+    logo: 'gcb.jpg',
     textColor: 'text-blue-600 dark:text-blue-400'
   }
 ]
@@ -472,16 +465,16 @@ export default function DashboardPage() {
                                   style={{ backgroundColor: wallet.color }}
                                 />
                                 <div className="flex items-center gap-3">
-                                  <div className={`w-10 h-10 ${wallet.bgColor} rounded-xl flex items-center justify-center`}>
-                                    <span className="text-lg">{wallet.logo}</span>
+                                  <div className="w-10 h-10 rounded-xl flex items-center justify-center">
+                                    <Image src={`/images/${wallet.logo}`} height={45} width={45} alt={wallet.name} className="text-lg" />
                                   </div>
                                   <div>
                                     <span className="font-medium text-navy-900 dark:text-white block">
                                       {wallet.name}
                                     </span>
                                     <span className={`text-xs ${wallet.textColor} font-medium`}>
-                                      {wallet.name === 'MTN MoMo' ? 'Mobile Money' : 
-                                       wallet.name === 'Telecel Cash' ? 'Mobile Money' :
+                                      {wallet.name === 'MTN MoMo' ||
+                                       wallet.name === 'Telecel Cash' ||
                                        wallet.name === 'AirtelTigo' ? 'Mobile Money' : 'Bank Account'}
                                     </span>
                                   </div>
