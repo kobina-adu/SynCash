@@ -1,6 +1,6 @@
 # SynCash
 
-Welcome to SynCash—a modular, microservices-based financial orchestration platform for secure, scalable, and observable digital payments. This README is crafted to be the definitive onboarding and technical reference, reflecting the insights and best practices discussed in this session.
+Welcome to SynCash—a modular, microservices-based financial orchestration platform for secure, scalable, and observable digital payments. This README is crafted to be the definitive onboarding and technical reference
 
 ---
 
