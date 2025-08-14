@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import Image from 'next/image';
 import { motion } from 'framer-motion'
 //import RequestPayment from "./RequestPayment";
@@ -177,12 +177,15 @@ const chartData = [
 ]
 
 import { useRouter } from 'next/navigation'
-
 import { useSearchParams } from 'next/navigation'
 
-export default function DashboardPage() {
+function DashboardContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [wallets, setWallets] = useState<Wallet[]>(initialWallets);
+  const [balanceVisible, setBalanceVisible] = useState(true)
+  const [selectedTransaction, setSelectedTransaction] = useState<typeof recentTransactions[0] | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     const newAccountParam = searchParams.get('newAccount');
@@ -217,10 +220,6 @@ export default function DashboardPage() {
       } catch {}
     }
   }, [searchParams, wallets]);
-  const router = useRouter();
-  const [balanceVisible, setBalanceVisible] = useState(true)
-  const [selectedTransaction, setSelectedTransaction] = useState<typeof recentTransactions[0] | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
   const handleTransactionClick = (transaction: typeof recentTransactions[0]) => {
     setSelectedTransaction(transaction)
@@ -386,10 +385,10 @@ export default function DashboardPage() {
                         variant="hover" 
                         className="p-6 text-center cursor-pointer transition-transform hover:scale-105"
                         onClick={() => {
-  if (action.href) {
-    router.push(action.href)
-  }
-}}
+                          if (action.href) {
+                            router.push(action.href)
+                          }
+                        }}
                       >
                         <div className={`w-12 h-12 bg-gradient-to-br ${action.color} rounded-xl flex items-center justify-center mx-auto mb-3 shadow-medium`}>
                           <IconComponent className="text-white" size={24} />
@@ -635,5 +634,13 @@ export default function DashboardPage() {
         onClose={handleCloseModal}
       />
     </div>
+  )
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   )
 }

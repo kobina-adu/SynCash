@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -39,7 +39,8 @@ interface FormErrors {
   confirmPassword?: string
   acceptTerms?: string
 }
-export default function SignUpPage() {
+
+function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const role = searchParams.get("role");
@@ -62,7 +63,7 @@ export default function SignUpPage() {
   });
   const [errors, setErrors] = useState<FormErrors>({});
 
-    const validateForm = (): boolean => {
+  const validateForm = (): boolean => {
     const newErrors: FormErrors = {}
 
     // Name validation
@@ -114,7 +115,7 @@ export default function SignUpPage() {
     return Object.keys(newErrors).length === 0
   }
 
-    const handleInputChange = (field: keyof FormData) => (
+  const handleInputChange = (field: keyof FormData) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value
@@ -126,7 +127,7 @@ export default function SignUpPage() {
     }
   }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (!validateForm()) {
@@ -137,11 +138,8 @@ export default function SignUpPage() {
     setLoading(true)
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      
-      toast.success('Account created successfully!')
-      router.push('/auth/verify-otp?phone=' + encodeURIComponent(formData.phone))
+      toast.success('Account created successfully!');
+      router.push("/dashboard")
     } catch (error) {
       toast.error('Failed to create account. Please try again.')
     } finally {
@@ -313,5 +311,13 @@ export default function SignUpPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignUpForm />
+    </Suspense>
   )
 }

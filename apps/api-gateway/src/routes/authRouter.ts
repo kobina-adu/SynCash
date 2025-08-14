@@ -20,6 +20,10 @@ authRouter.use(logger());
 
 // Example route: user signup
 authRouter.post('/signup', async (c) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  
+  if( session ) return c.json({ error: "User is already logged in" }, 401);
+
   const { email, password, name, callbackURL, rememberMe }: userSignUpType = await c.req.json();
   const result = await auth.api.signUpEmail({
     body: {
@@ -37,6 +41,10 @@ authRouter.post('/signup', async (c) => {
 
 
 authRouter.post("/change-password", async (c) => {
+  const session = auth.api.getSession({ headers: c.req.raw.headers });
+
+  if(!session) return c.json({ error: "Unauthorized" }, 401);
+
   const { email, currentPassword, newPassword }: { email: string; currentPassword: string; newPassword: string; } = await c.req.json();
   const result = await auth.api.changePassword({
     body: {
@@ -63,22 +71,22 @@ authRouter.post('/login', async (c) => {
 });
 
 
-// Request OTP (for sign-in)
-authRouter.post('/auth/send-otp', async (c) => {
-  const { email } = await c.req.json();
-  await auth.sendOTP({ email, type: 'sign-in' });
-  return c.json({ ok: true });
-});
+// // Request OTP (for sign-in)
+// authRouter.post('/auth/send-otp', async (c) => {
+//   const { email } = await c.req.json();
+//   await auth.sendOTP({ email, type: 'sign-in' });
+//   return c.json({ ok: true });
+// });
 
-// Verify OTP
-authRouter.post('/auth/verify-otp', async (c) => {
-  const { email, otp } = await c.req.json();
-  const result = await auth.verifyOTP({ email, otp, type: 'sign-in' });
-  if (result.success) {
-    // Generate session or token if necessary (you can return a JWT or session cookie)
-    return c.json({ ok: true, message: 'OTP verified' });
-  }
-  return c.json({ ok: false, message: 'Invalid OTP' }, 400);
-});
+// // Verify OTP
+// authRouter.post('/auth/verify-otp', async (c) => {
+//   const { email, otp } = await c.req.json();
+//   const result = await auth.verifyOTP({ email, otp, type: 'sign-in' });
+//   if (result.success) {
+//     // Generate session or token if necessary (you can return a JWT or session cookie)
+//     return c.json({ ok: true, message: 'OTP verified' });
+//   }
+//   return c.json({ ok: false, message: 'Invalid OTP' }, 400);
+// });
 
 export default authRouter

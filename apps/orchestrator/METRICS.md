@@ -138,7 +138,7 @@ docker-compose up -d prometheus grafana node-exporter redis-exporter
 ### Accessing Services
 
 - **Prometheus**: http://localhost:9090
-- **Grafana**: http://localhost:3000 (admin/synccash123)
+- **Grafana**: http://localhost:9091 (admin/synccash123)
 - **Orchestrator Metrics**: http://localhost:8000/api/v1/metrics
 
 ### Example Queries

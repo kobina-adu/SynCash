@@ -39,7 +39,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
             type={inputType}
             className={cn(
               error ? 'input-error' : 'input-field',
-              icon && 'pl-10',
+              // icon && 'pl-10',
               showPasswordToggle && 'pr-10',
               className
             )}

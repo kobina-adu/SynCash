@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     
     # Database
     database_url: str = Field(
-        default="postgres://synccash:synccash@localhost:5432/synccash",
+        default="postgres://syncash:syncash@syncash:5432/syncash",
         env="DATABASE_URL"
     )
     database_echo: bool = Field(default=False, env="DATABASE_ECHO")

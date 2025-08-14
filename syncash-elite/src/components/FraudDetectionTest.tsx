@@ -165,7 +165,7 @@ export default function FraudDetectionTest() {
   };
 
   const handleRetry = () => {
-    toast.info('🔄 Retrying transaction...');
+    toast.loading('🔄 Retrying transaction...');
     setShowModal(false);
     setFraudResult(null);
     // Could trigger another fraud check here
@@ -325,11 +325,11 @@ export default function FraudDetectionTest() {
         onClose={() => setShowModal(false)}
         fraudResult={fraudResult}
         onProceed={handleProceed}
-        onRequestOTP={handleRequestOTP}
-        onVerifyOTP={handleVerifyOTP}
+        // onRequestOTP={handleRequestOTP}
+        // onVerifyOTP={handleVerifyOTP}
         onCancel={handleCancel}
-        onRetry={handleRetry}
-        loading={loading}
+        // onRetry={handleRetry}
+        // loading={loading}
       />
     </div>
   );

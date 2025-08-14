@@ -234,7 +234,7 @@ export default function SendMoneyPage() {
     setShowFraudModal(false)
     setFraudResult(null)
     setCurrentTransactionId(null)
-    toast.info('Transaction cancelled')
+    toast.error('Transaction cancelled')
   }
 
   const renderStep1 = () => (

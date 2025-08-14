@@ -14,7 +14,9 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import toast from 'react-hot-toast'
+import toast, { Toaster } from 'react-hot-toast'
+
+import { signIn } from '@/lib/auth-client'
 
 interface FormData {
   email: string
@@ -82,10 +84,29 @@ export default function LoginPage() {
     
     try {
       if (formData.email === 'dev@syncash.com' && formData.password === 'Dev123!') {
-        toast.success('Welcome, Developer!');
         router.push('/developer-dashboard');
+        toast.success('Welcome, Developer!');
         return;
       }
+
+      //  await signIn.email(
+      //     {
+      //         email: formData.email,
+      //         password: formData.password,
+      //         rememberMe: formData.rememberMe,
+      //     },
+      //     {
+      //       onRequest: (ctx) => {
+      //         setLoading(true);
+      //       },
+      //       onResponse: (ctx) => {
+      //         setLoading(false);
+      //         toast.success('Login successful!');
+      //         router.push("/dashboard");
+      //       },
+      //     },
+      //   );
+
       if (formData.email === 'demo@syncash.com' && formData.password === 'Demo123!') {
         toast.success('Welcome, ' + formData.email + '!');
         router.push('/dashboard');

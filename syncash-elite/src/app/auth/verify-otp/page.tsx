@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense } from 'react'
 import { motion } from 'framer-motion'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -15,7 +15,7 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import toast from 'react-hot-toast'
 
-export default function VerifyOtpPage() {
+function VerifyOtpForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const phoneNumber = searchParams.get('phone') || ''
@@ -192,5 +192,13 @@ export default function VerifyOtpPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function VerifyOtpPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VerifyOtpForm />
+    </Suspense>
   )
 }

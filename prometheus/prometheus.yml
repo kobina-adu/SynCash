@@ -8,7 +8,7 @@ rule_files:
 
 scrape_configs:
   # SyncCash Orchestrator Service
-  - job_name: 'synccash-orchestrator'
+  - job_name: 'syncash-orchestrator'
     static_configs:
       - targets: ['host.docker.internal:8000']
     metrics_path: '/api/v1/metrics'
@@ -18,7 +18,7 @@ scrape_configs:
   # API Gateway
   - job_name: 'api-gateway'
     static_configs:
-      - targets: ['api-gateway:9100']
+      - targets: ['api-gateway:8080']
 
   # Notifications Service
   - job_name: 'notifications'
