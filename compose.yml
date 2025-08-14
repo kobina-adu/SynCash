@@ -8,9 +8,9 @@ services:
     environment:
       - NODE_ENV=production
       - RESEND_API=re_Dwqg3Bpw_H5GsXF4xrsRRATahA7VF2kEw
-      - DATABASE_URL=postgres://syncash:syncash@syncash:5432/syncash
+      - DATABASE_URL=postgres://syncash:syncash@postgres:5432/syncash
       - BETTER_AUTH_SECRET=AvFjmRaFmTIyosAaoCm938FT9UXsn7tI
-      - BETTER_AUTH_URL=http://localhost:8080
+      - BETTER_AUTH_URL=http://13.53.108.219:8080
       - PORT=8080
     depends_on:
       - orchestrator
@@ -28,7 +28,6 @@ services:
     depends_on:
       - redis
 
-
   web:
     build:
       context: ./syncash-elite
@@ -42,14 +41,13 @@ services:
     depends_on:
       - api-gateway
 
-  # Orchestrator API
   orchestrator:
     build:
       context: ./apps/orchestrator
     container_name: orchestrator
     environment:
       - ENVIRONMENT=production
-      - DATABASE_URL=postgres://syncash:syncash@syncash:5432/syncash
+      - DATABASE_URL=postgres://syncash:syncash@postgres:5432/syncash
       - REDIS_URL=redis://redis:6379/
       - LOG_LEVEL=INFO
       - LOG_FORMAT=json
@@ -60,27 +58,24 @@ services:
       - redis
     restart: unless-stopped
 
-  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_DB: synccash
-      POSTGRES_USER: synccash
-      POSTGRES_PASSWORD: synccash
-      PG_DB_URL: postgres://syncash:syncash@syncash:5432/syncash
+      POSTGRES_DB: syncash
+      POSTGRES_USER: syncash
+      POSTGRES_PASSWORD: syncash
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U synccash -d synccash_orchestrator"]
+      test: ["CMD-SHELL", "pg_isready -U syncash -d syncash"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis Cache & Message Broker
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -94,7 +89,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Prometheus monitoring
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
@@ -112,16 +106,16 @@ services:
       - "9090:9090"
     restart: unless-stopped
 
-  # Grafana dashboard
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     ports:
-      - "9091:9091"
+      - "9091:3000"
     environment:
       - GF_SECURITY_ADMIN_USER=admin
       - GF_SECURITY_ADMIN_PASSWORD=synccash123
       - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_HTTP_PORT=3000
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
