@@ -25,6 +25,8 @@ import { formatCurrency, validatePhone, generateTransactionId } from '@/lib/util
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import FraudDetectionModal from '@/components/FraudDetectionModal'
+import { apiService, type PaymentRequest, type FraudDetectionResult } from '@/lib/api'
 
 // Mock data
 const userWallets = [
@@ -62,6 +64,11 @@ export default function SendMoneyPage() {
     selectedWallet: 'mtn'
   })
   const [errors, setErrors] = useState<Partial<SendFormData>>({})
+
+  // Real fraud detection state
+  const [showFraudModal, setShowFraudModal] = useState(false)
+  const [fraudResult, setFraudResult] = useState<FraudDetectionResult | null>(null)
+  const [currentTransactionId, setCurrentTransactionId] = useState<string | null>(null)
 
   const selectedWalletData = userWallets.find(w => w.id === formData.selectedWallet)
   const transactionFee = parseFloat(formData.amount) * 0.01 // 1% fee
@@ -118,18 +125,116 @@ export default function SendMoneyPage() {
     }
   }
 
+  // Real fraud detection integration
   const handleSendMoney = async () => {
+    if (!validateForm()) return
+
     setLoading(true)
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setStep(3)
-      toast.success('Money sent successfully!')
+      console.log('🚀 Initiating payment with fraud detection...')
+      
+      // Prepare payment request for backend
+      const paymentRequest: PaymentRequest = {
+        user_id: 'current_user_id', // Replace with actual user ID from auth
+        amount: parseFloat(formData.amount),
+        recipient_phone: formData.recipientPhone,
+        recipient_name: formData.recipientName,
+        description: formData.message || undefined,
+        metadata: {
+          selected_wallet: formData.selectedWallet,
+          transaction_fee: transactionFee,
+          total_amount: totalAmount,
+          frontend_timestamp: new Date().toISOString()
+        }
+      }
+
+      // Call backend fraud detection API
+      const result = await apiService.initiatePayment(paymentRequest)
+      
+      console.log('🤖 Fraud detection result:', result)
+      
+      // Store fraud result and transaction ID
+      setFraudResult(result)
+      setCurrentTransactionId(result.transaction_id)
+
+      if (result.success && !result.fraud_detected) {
+        // Safe transaction - proceed directly
+        console.log('✅ Safe transaction, proceeding...')
+        toast.success('Payment processed successfully!')
+        setStep(3)
+      } else if (result.fraud_detected && result.ui_response?.show_popup) {
+        // Show fraud detection popup
+        console.log('⚠️ Fraud detected, showing popup...')
+        setShowFraudModal(true)
+      } else if (result.blocked) {
+        // Transaction blocked
+        console.log('🚫 Transaction blocked')
+        toast.error('Transaction blocked due to security concerns')
+      } else {
+        // Handle other cases
+        console.log('❓ Unexpected result:', result)
+        toast.error(result.error || 'Payment processing failed')
+      }
+
     } catch (error) {
-      toast.error('Failed to send money. Please try again.')
+      console.error('❌ Payment error:', error)
+      toast.error('Payment failed. Please try again.')
+      
+      // Show system error popup
+      setFraudResult({
+        success: false,
+        transaction_id: '',
+        fraud_detected: true,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        ui_response: {
+          type: 'system_error',
+          title: '⚠️ SECURITY CHECK REQUIRED',
+          message: 'Unable to verify transaction security. Please try again or contact support.',
+          warning_text: 'CAUTION: Security verification failed',
+          color: 'orange',
+          show_popup: true,
+          require_confirmation: true
+        }
+      })
+      setShowFraudModal(true)
     } finally {
       setLoading(false)
     }
+  }
+
+  // Handle fraud modal actions
+  const handleFraudProceed = async () => {
+    console.log('✅ User approved transaction after fraud check')
+    setShowFraudModal(false)
+    
+    // If we have a transaction ID, check its status
+    if (currentTransactionId) {
+      try {
+        const status = await apiService.getTransactionStatus(currentTransactionId)
+        if (status.success) {
+          toast.success('Payment processed successfully!')
+          setStep(3)
+        } else {
+          toast.error('Payment processing failed')
+        }
+      } catch (error) {
+        console.error('Status check error:', error)
+        toast.error('Unable to verify payment status')
+      }
+    } else {
+      // Fallback - proceed to success
+      toast.success('Payment processed successfully!')
+      setStep(3)
+    }
+  }
+
+  const handleFraudCancel = () => {
+    console.log('❌ User cancelled transaction after fraud check')
+    setShowFraudModal(false)
+    setFraudResult(null)
+    setCurrentTransactionId(null)
+    toast.info('Transaction cancelled')
   }
 
   const renderStep1 = () => (
@@ -382,7 +487,7 @@ export default function SendMoneyPage() {
               Back
             </Button>
             <Button onClick={handleSendMoney} loading={loading} className="flex-1">
-              Send Money
+              {loading ? 'Processing...' : 'Send Money'}
             </Button>
           </div>
         </div>
@@ -467,6 +572,15 @@ export default function SendMoneyPage() {
           </motion.div>
         </div>
       </main>
+
+      {/* Real Fraud Detection Modal */}
+      <FraudDetectionModal
+        isOpen={showFraudModal}
+        fraudResult={fraudResult}
+        onClose={() => setShowFraudModal(false)}
+        onProceed={handleFraudProceed}
+        onCancel={handleFraudCancel}
+      />
     </div>
   )
 }

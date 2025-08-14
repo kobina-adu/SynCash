@@ -16,6 +16,7 @@ from src.models.transaction import (
 from src.core.database import get_db_session
 from src.config.settings import get_settings
 from src.core.metrics import get_metrics_collector
+from src.services.fraud_detection_service import EnhancedFraudDetectionService
 
 logger = structlog.get_logger(__name__)
 
@@ -27,6 +28,8 @@ class PaymentOrchestrator:
     def __init__(self):
         self.settings = get_settings()
         self.metrics = get_metrics_collector()
+        # Initialize fraud detection service - MANDATORY for all transactions
+        self.fraud_detector = EnhancedFraudDetectionService()
     
     async def initiate_payment(
         self,
@@ -38,24 +41,23 @@ class PaymentOrchestrator:
         metadata: Dict[str, Any] = None
     ) -> Dict[str, Any]:
         """
-        Initiate a new payment transaction
+        Initiate a new payment transaction with MANDATORY fraud detection
         
-        Args:
-            user_id: User initiating the payment
-            amount: Payment amount
-            recipient_phone: Recipient phone number
-            recipient_name: Recipient name
-            description: Payment description
-            metadata: Additional metadata
-            
+        This method ensures EVERY transaction goes through:
+        1. Input validation
+        2. Transaction creation
+        3. ML MODEL + RULES FRAUD DETECTION (MANDATORY)
+        4. UI response generation for popup display
+        5. Provider processing (if safe) or blocking (if fraud)
+        
         Returns:
-            Transaction details
+            Dict containing transaction details and UI response for popup display
         """
         # Start metrics tracking
         start_time = time.time()
         
         logger.info(
-            "Initiating payment",
+            "Initiating payment with mandatory fraud detection",
             user_id=user_id,
             amount=amount,
             recipient_phone=recipient_phone
@@ -75,93 +77,202 @@ class PaymentOrchestrator:
                 metadata=metadata or {}
             )
             
-            # Step 3: Basic fraud check (simplified for now)
-            risk_level = await self._basic_fraud_check(transaction)
-            transaction.risk_level = risk_level
+            # Step 3: MANDATORY FRAUD DETECTION - ML MODEL + RULES
+            # This is where your ML model gets integrated!
+            logger.info("Running ML model fraud detection", transaction_id=str(transaction.id))
+            
+            fraud_result = await self.fraud_detector.validate_transaction(transaction)
+            
+            # Update transaction with fraud detection results
+            transaction.fraud_score = fraud_result.risk_score
+            transaction.risk_level = fraud_result.risk_level
+            transaction.fraud_checked_at = datetime.utcnow()
+            transaction.is_fraudulent = fraud_result.is_fraud
+            
+            # Store detailed fraud detection data
+            transaction.fraud_detection_data = {
+                "ml_confidence": fraud_result.confidence,
+                "reasons": fraud_result.reasons,
+                "detection_timestamp": datetime.utcnow().isoformat(),
+                "model_version": "anti_fraud_model_pipeline.pkl"
+            }
             
             # Record fraud check metrics
-            self.metrics.record_fraud_check(risk_level, "completed", transaction.fraud_score)
+            self.metrics.record_fraud_check(fraud_result.risk_level.lower(), "completed", fraud_result.risk_score)
             
-            if risk_level == "CRITICAL":
-                self.metrics.record_blocked_transaction("fraud_risk", risk_level)
-                await self._update_transaction_status(
-                    transaction, TransactionStatus.FAILED, 
-                    error_message="Transaction blocked due to high fraud risk"
-                )
-                return {"success": False, "error": "Transaction blocked", "transaction_id": str(transaction.id)}
-            
-            # Step 4: Select provider (for now, pick MTN for demo; can randomize or use logic)
-            from src.models.transaction import PaymentProvider
-            provider = PaymentProvider.MTN
-            transaction.primary_provider = provider
-
-            # Step 5: Provider call (simulate or real)
-            provider_result = None
-            from src.services.provider_simulation import simulate_provider_payment
-            if self.settings.provider_simulation:
-                try:
-                    provider_result = await simulate_provider_payment(provider, amount, recipient_phone, metadata)
-                    if provider_result['status'] == 'confirmed':
-                        await self._update_transaction_status(transaction, TransactionStatus.CONFIRMED)
-                        logger.info("Simulated provider success", provider=provider.value, ref=provider_result['provider_ref'])
-                        self.metrics.record_provider_api_call(provider.value, "success")
-                        return {
-                            "success": True,
-                            "transaction_id": str(transaction.id),
-                            "status": TransactionStatus.CONFIRMED.value,
-                            "provider_ref": provider_result['provider_ref'],
-                            "message": provider_result['message']
-                        }
-                    elif provider_result['status'] == 'failed':
-                        await self._update_transaction_status(transaction, TransactionStatus.FAILED, error_message=provider_result['error'])
-                        logger.warning("Simulated provider failure", provider=provider.value, error=provider_result['error'])
-                        self.metrics.record_provider_api_call(provider.value, "failed")
-                        return {
-                            "success": False,
-                            "transaction_id": str(transaction.id),
-                            "status": TransactionStatus.FAILED.value,
-                            "error": provider_result['error']
-                        }
-                except Exception as e:
-                    # Simulated timeout or error
-                    await self._update_transaction_status(transaction, TransactionStatus.PENDING, error_message=str(e))
-                    logger.error("Simulated provider timeout/error", provider=provider.value, error=str(e))
-                    self.metrics.record_provider_api_call(provider.value, "timeout")
+            # Step 4: Handle fraud detection result and generate UI response
+            if fraud_result.is_fraud:
+                # HIGH-RISK OR CRITICAL: Block transaction or require OTP
+                self.metrics.record_blocked_transaction("fraud_detected", fraud_result.risk_level)
+                
+                if fraud_result.risk_level == "CRITICAL":
+                    # CRITICAL RISK: Block transaction immediately
+                    await self._update_transaction_status(
+                        transaction, TransactionStatus.FRAUD_DETECTED, 
+                        error_message=f"Transaction blocked due to critical fraud risk: {fraud_result.risk_level}"
+                    )
+                    
+                    logger.warning(
+                        "CRITICAL FRAUD DETECTED - Transaction blocked",
+                        transaction_id=str(transaction.id),
+                        risk_score=fraud_result.risk_score,
+                        reasons=fraud_result.reasons
+                    )
+                    
+                    # Return UI response for BLOCKED transaction popup
                     return {
-                        "success": False,
+                        "success": False, 
                         "transaction_id": str(transaction.id),
-                        "status": TransactionStatus.PENDING.value,
-                        "error": str(e)
+                        "fraud_detected": True,
+                        "blocked": True,
+                        "ui_response": {
+                            "type": "transaction_blocked",
+                            "title": "🚫 TRANSACTION BLOCKED",
+                            "message": "This transaction has been blocked due to critical security concerns.",
+                            "warning_text": "CRITICAL RISK DETECTED",
+                            "reasons": fraud_result.reasons,
+                            "actions": [
+                                {
+                                    "text": "Contact Support",
+                                    "style": "primary",
+                                    "action": "contact_support"
+                                },
+                                {
+                                    "text": "Close",
+                                    "style": "secondary",
+                                    "action": "close_modal"
+                                }
+                            ],
+                            "color": "red",
+                            "show_popup": True,
+                            "require_confirmation": True
+                        },
+                        "risk_level": fraud_result.risk_level,
+                        "reasons": fraud_result.reasons
+                    }
+                else:
+                    # HIGH RISK: Allow with OTP verification
+                    await self._update_transaction_status(
+                        transaction, TransactionStatus.FRAUD_DETECTED, 
+                        error_message=f"Transaction flagged for fraud verification: {fraud_result.risk_level} risk"
+                    )
+                    
+                    logger.warning(
+                        "HIGH FRAUD RISK - OTP verification required",
+                        transaction_id=str(transaction.id),
+                        risk_score=fraud_result.risk_score,
+                        reasons=fraud_result.reasons
+                    )
+                    
+                    # Return UI response for HIGH-RISK transaction popup (RED WARNING + OTP)
+                    return {
+                        "success": False, 
+                        "transaction_id": str(transaction.id),
+                        "fraud_detected": True,
+                        "blocked": False,
+                        "ui_response": fraud_result.ui_response,  # This contains the red warning popup
+                        "risk_level": fraud_result.risk_level,
+                        "reasons": fraud_result.reasons
+                    }
+            
+            # Step 5: SAFE TRANSACTION - Proceed with provider processing
+            logger.info(
+                "Transaction passed fraud detection - proceeding",
+                transaction_id=str(transaction.id),
+                risk_level=fraud_result.risk_level,
+                risk_score=fraud_result.risk_score
+            )
+            
+            # Select provider and process
+            provider = PaymentProvider.MTN  # Default provider
+            transaction.primary_provider = provider
+            
+            # Process with provider (simulate or real)
+            if self.settings.provider_simulation:
+                from src.services.provider_simulation import simulate_provider_payment
+                provider_result = await simulate_provider_payment(
+                    provider, amount, recipient_phone, {"fraud_cleared": True}
+                )
+                
+                if provider_result['status'] == 'confirmed':
+                    await self._update_transaction_status(transaction, TransactionStatus.CONFIRMED)
+                    
+                    logger.info(
+                        "Safe transaction completed successfully", 
+                        transaction_id=str(transaction.id),
+                        provider_ref=provider_result.get('provider_ref')
+                    )
+                    
+                    # Return SUCCESS with SAFE transaction popup (GREEN PROCEED)
+                    return {
+                        "success": True,
+                        "transaction_id": str(transaction.id),
+                        "status": transaction.status.value,
+                        "estimated_completion": "2-5 minutes",
+                        "provider": provider.value,
+                        "provider_reference": provider_result.get('provider_ref'),
+                        "ui_response": fraud_result.ui_response,  # This contains the green proceed popup
+                        "fraud_check": {
+                            "risk_level": fraud_result.risk_level,
+                            "risk_score": fraud_result.risk_score,
+                            "confidence": fraud_result.confidence,
+                            "ml_model_used": True
+                        }
+                    }
+                else:
+                    # Provider failed
+                    await self._update_transaction_status(
+                        transaction, TransactionStatus.FAILED, 
+                        error_message=provider_result.get('error')
+                    )
+                    return {
+                        "success": False, 
+                        "error": f"Provider processing failed: {provider_result.get('error')}",
+                        "transaction_id": str(transaction.id)
                     }
             else:
-                # Placeholder for real provider integration
-                # TODO: Integrate with real provider APIs when ready
-                await self._update_transaction_status(transaction, TransactionStatus.PENDING)
-                logger.info("Real provider integration not yet implemented", provider=provider.value)
-                return {
-                    "success": True,
-                    "transaction_id": str(transaction.id),
-                    "status": TransactionStatus.PENDING.value,
-                    "message": "Real provider integration coming soon."
-                }
-
-            # Fallback (should not reach here)
+                # Real provider integration would go here
+                logger.warning("Real provider integration not implemented")
+                return {"success": False, "error": "Provider integration not available"}
+                
+        except ValueError as e:
+            logger.warning("Payment validation failed", error=str(e), user_id=user_id)
+            return {"success": False, "error": str(e)}
+        
+        except Exception as e:
+            logger.error("Payment initiation error", exc_info=e, user_id=user_id)
+            
+            # Even on system error, return fraud detection error UI
             return {
                 "success": False,
-                "transaction_id": str(transaction.id),
-                "status": transaction.status.value,
-                "error": "Unknown provider outcome"
+                "error": "System error during payment processing",
+                "ui_response": {
+                    "type": "system_error",
+                    "title": "⚠️ SECURITY CHECK REQUIRED",
+                    "message": "Unable to verify transaction security. Please try again or contact support.",
+                    "warning_text": "CAUTION: Security verification failed",
+                    "actions": [
+                        {
+                            "text": "Retry Transaction",
+                            "style": "primary",
+                            "action": "retry_transaction"
+                        },
+                        {
+                            "text": "Cancel",
+                            "style": "danger",
+                            "action": "cancel_transaction"
+                        }
+                    ],
+                    "color": "red",
+                    "show_popup": True,
+                    "require_confirmation": True
+                }
             }
-
-            
-        except Exception as e:
-            # Record error metrics
-            duration = time.time() - start_time
-            self.metrics.record_payment_duration(duration, "failed", "unknown", "unknown")
-            self.metrics.record_application_error(type(e).__name__, "payment_orchestrator", "error")
-            
-            logger.error("Payment initiation failed", exc_info=e, user_id=user_id)
-            return {"success": False, "error": str(e)}
+        
+        finally:
+            # Record processing time
+            processing_time = time.time() - start_time
+            self.metrics.record_payment_processing_time(processing_time)
     
     async def get_transaction_status(self, transaction_id: str) -> Dict[str, Any]:
         """Get current transaction status"""
