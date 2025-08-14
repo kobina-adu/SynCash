@@ -331,7 +331,7 @@ A: Use GitHub Issues or reach out via Slack/Discord.
 
 ## Shoutout
 
-Special thanks to **HM-digitalhub-Ghana** for giving us the opportunity to push ourselves to the limit and discover the unique joy in learning something new. From exploring AWS services, deploying containers to the cloud, and embracing best practices as a team, we see ourselves as winners—regardless of what the results might say. Your support and encouragement have been instrumental in our growth and success.
+Special thanks to **Heidelberg Materials-digitalhub-Ghana** for giving us the opportunity to push ourselves to the limit and discover the unique joy in learning something new. From exploring AWS services, deploying containers to the cloud, and embracing best practices as a team, we see ourselves as winners—regardless of what the results might say. Your support and encouragement have been instrumental in our growth and success.
 
 ---
 
